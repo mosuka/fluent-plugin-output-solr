@@ -1,63 +1,90 @@
+require 'securerandom'
+require 'rsolr'
+require 'zk'
+require 'rsolr/cloud'
+
 module Fluent
   class SolrOutput < BufferedOutput
-    # First, register the plugin. NAME is the name of this plugin
-    # and identifies the plugin in the configuration file.
     Fluent::Plugin.register_output('out_solr', self)
 
-    # config_param defines a parameter. You can refer a parameter via @path instance variable
-    # Without :default, a parameter is required.
-    #config_param :path, :string
+    config_param  :mode, :string, :default => 'Standalone',
+                  :desc => 'The olr server mode, it can be Standalone or SolrCloud.'
+
+    config_param  :solr_url, :string, :default => 'http://localhost:8983/solr',
+                  :desc => 'The Solr server url.'
+    config_param :solr_core, :string, :default => 'collection1',
+                  :desc => 'The Solr core name.'
+
+    config_param :solrcloud_zkhost, :string, :default => 'localhost:2181/solr',
+                  :desc => 'The ZooKeeper connection string that SolrCloud refers to.'
+    config_param :solrcloud_collection, :string, :default => 'collection1',
+                  :desc => 'The SolrCloud collection name.'
+
+    config_param :batch_size, :integer, :default => 100,
+                  :desc => 'The batch size used in update.'
 
     def initialize
       super
     end
 
-    # This method is called before starting.
-    # 'conf' is a Hash that includes configuration parameters.
-    # If the configuration is invalid, raise Fluent::ConfigError.
     def configure(conf)
       super
 
-      # You can also refer raw parameter via conf[name].
-      #@path = conf['path']
+      @mode = conf['mode']
+
+      @batch_size = conf['batch_size'].to_i
+
+      @solr_url = conf['solr_url']
+      @solr_core = conf['solr_core']
+
+      @solrcloud_zkhost = conf['solrcloud_zkhost']
+      @solrcloud_collection = conf['solrcloud_collection']
     end
 
-    # This method is called when starting.
-    # Open sockets or files here.
     def start
       super
+
+      if @mode == 'Standalone' then
+        @solr = RSolr.connect :url => @solr_url.end_with?('/') ? @solr_url + @solr_core : @solr_url + '/' + @solr_core
+      elsif @mode == 'SolrCloud' then
+        @solr = RSolr::Client.new(RSolr::Cloud::Connection.new(ZK.new(@solrcloud_zkhost)), read_timeout: 60, open_timeout: 60)
+      else
+        raise 'Unexpected mode specified.'
+      end
     end
 
-    # This method is called when shutting down.
-    # Shutdown the thread and close sockets or files here.
     def shutdown
       super
     end
 
-    # This method is called when an event reaches to Fluentd.
-    # Convert the event to a raw string.
     def format(tag, time, record)
-      [tag, time, record].to_json + "\n"
-      ## Alternatively, use msgpack to serialize the object.
-      # [tag, time, record].to_msgpack
+      [tag, time, record].to_msgpack
     end
 
-    # This method is called every flush interval. Write the buffer chunk
-    # to files or databases here.
-    # 'chunk' is a buffer chunk that includes multiple formatted
-    # events. You can use 'data = chunk.read' to get all events and
-    # 'chunk.open {|io| ... }' to get IO objects.
-    #
-    # NOTE! This method is called by internal thread, not Fluentd's main thread. So IO wait doesn't affect other plugins.
     def write(chunk)
-      data = chunk.read
-      print data
-    end
+      documents = []
 
-    ## Optionally, you can use chunk.msgpack_each to deserialize objects.
-    #def write(chunk)
-    #  chunk.msgpack_each {|(tag,time,record)|
-    #  }
-    #end
+      chunk.msgpack_each do |tag, time, record|
+        record.merge!({'id' => SecureRandom.uuid})
+
+        documents << record
+      
+        if documents.count >= @batch_size
+          @solr.add documents
+          log.info "Added %d document(s) to Solr" % documents.count
+          @solr.commit
+          log.info 'Sent a commit to Solr.'
+          documents.clear
+        end
+      end
+      
+      if documents.count > 0 then
+        @solr.add documents
+        log.info "Added %d document(s) to Solr" % documents.count
+        @solr.commit
+        log.info 'Sent a commit to Solr.'
+        documents.clear
+      end
+    end
   end
 end
