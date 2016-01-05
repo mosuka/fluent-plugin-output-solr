@@ -7,19 +7,19 @@ module Fluent
   class SolrOutput < BufferedOutput
     Fluent::Plugin.register_output('out_solr', self)
 
-    config_param  :mode, :string, :default => 'Standalone',
-                  :desc => 'The olr server mode, it can be Standalone or SolrCloud.'
+    config_param :url, :string, :default => nil,
+                  :desc => 'The Solr server url (for example http://localhost:8983/solr/collection1).'
 
-    config_param  :url, :string, :default => 'http://localhost:8983/solr/collection1',
-                  :desc => 'The Solr server url.'
-
-    config_param :zk_host, :string, :default => 'localhost:2181/solr',
-                  :desc => 'The ZooKeeper connection string that SolrCloud refers to.'
+    config_param :zk_host, :string, :default => nil,
+                  :desc => 'The ZooKeeper connection string that SolrCloud refers to (for example localhost:2181/solr).'
     config_param :collection, :string, :default => 'collection1',
                   :desc => 'The SolrCloud collection name.'
 
     config_param :batch_size, :integer, :default => 100,
                   :desc => 'The batch size used in update.'
+
+    MODE_STANDALONE = 'Standalone'
+    MODE_SOLRCLOUD = 'SolrCloud'
 
     def initialize
       super
@@ -27,8 +27,6 @@ module Fluent
 
     def configure(conf)
       super
-
-      @mode = conf['mode']
 
       @url = conf['url']
 
@@ -41,21 +39,29 @@ module Fluent
     def start
       super
 
-      if @mode == 'Standalone' then
+      @mode = nil
+      if ! @url.nil? then
+        @mode = MODE_STANDALONE
+      elsif ! @zk_host.nil?
+        @mode = MODE_SOLRCLOUD
+      end
+
+      @solr = nil
+      @zk = nil
+
+      if @mode == MODE_STANDALONE then
         @solr = RSolr.connect :url => @url
-      elsif @mode == 'SolrCloud' then
+      elsif @mode == MODE_SOLRCLOUD then
         @zk = ZK.new(@zk_host)
-        @cloud_connection = RSolr::Cloud::Connection.new(@zk)
-        @solr = RSolr::Client.new(@cloud_connection, read_timeout: 60, open_timeout: 60)
-      else
-        raise 'Unexpected mode specified.'
+        cloud_connection = RSolr::Cloud::Connection.new(@zk)
+        @solr = RSolr::Client.new(cloud_connection, read_timeout: 60, open_timeout: 60)
       end
     end
 
     def shutdown
       super
 
-      if @mode == 'SolrCloud' then
+      unless @zk.nil? then
         @zk.close
       end
     end
@@ -74,18 +80,16 @@ module Fluent
         documents << record
       
         if documents.count >= @batch_size
-          if @mode == 'Standalone' then
+          if @mode == MODE_STANDALONE then
             @solr.add documents
             log.info 'Sent a commit to Solr.'
             @solr.commit
             log.info "Added %d document(s) to Solr" % documents.count
-          elsif @mode == 'SolrCloud' then
+          elsif @mode == MODE_SOLRCLOUD then
             @solr.add documents, collection: @collection
             log.info 'Sent a commit to Solr.'
             @solr.commit collection: @collection
             log.info "Added %d document(s) to Solr" % documents.count
-          else
-            raise 'Unexpected mode specified.'
           end
 
           documents.clear
@@ -93,18 +97,16 @@ module Fluent
       end
       
       if documents.count > 0 then
-        if @mode == 'Standalone' then
+        if @mode == MODE_STANDALONE then
           @solr.add documents
           log.info 'Sent a commit to Solr.'
           @solr.commit
           log.info "Added %d document(s) to Solr" % documents.count
-        elsif @mode == 'SolrCloud' then
+        elsif @mode == MODE_SOLRCLOUD then
           @solr.add documents, collection: @collection
           log.info 'Sent a commit to Solr.'
           @solr.commit collection: @collection
           log.info "Added %d document(s) to Solr" % documents.count
-        else
-          raise 'Unexpected mode specified.'
         end
 
         documents.clear
