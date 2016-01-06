@@ -19,13 +19,15 @@ Gem::Specification.new do |spec|
   spec.executables   = spec.files.grep(%r{^exe/}) { |f| File.basename(f) }
   spec.require_paths = ["lib"]
 
-  spec.add_runtime_dependency "fluentd"
-  spec.add_runtime_dependency "rsolr"
-  spec.add_runtime_dependency "zk"
-  spec.add_runtime_dependency "rsolr-cloud"
+  spec.add_runtime_dependency 'fluentd', '~> 0.12.19'
+  spec.add_runtime_dependency 'rsolr', '~> 1.0.13'
+  spec.add_runtime_dependency 'zk', '~> 1.9.6'
+  spec.add_runtime_dependency 'rsolr-cloud', '~> 1.0.0'
 
-  spec.add_development_dependency "bundler", "~> 1.11"
-  spec.add_development_dependency "rake", "~> 10.0"
-  spec.add_development_dependency 'test-unit', '~> 3.1.0'
-  spec.add_development_dependency 'minitest', '~> 5.8'
+  spec.add_development_dependency 'bundler', '~> 1.11.2'
+  spec.add_development_dependency 'rake', '~> 10.4.2'
+  spec.add_development_dependency 'test-unit', '~> 3.1.5'
+  spec.add_development_dependency 'minitest', '~> 5.8.3'
+  spec.add_development_dependency 'webmock', '~> 1.22.3'
+  spec.add_development_dependency 'zk-server', '~> 1.1.8'
 end

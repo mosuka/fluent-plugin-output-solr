@@ -68,48 +68,34 @@ module Fluent
 
     def format(tag, time, record)
       [tag, time, record].to_msgpack
-      #[tag, time, record].to_json
     end
 
     def write(chunk)
       documents = []
 
       chunk.msgpack_each do |tag, time, record|
-        record.merge!({'id' => SecureRandom.uuid})
+        unless record.has_key?('id') then
+          record.merge!({'id' => SecureRandom.uuid})
+        end
 
         documents << record
       
         if documents.count >= @batch_size
-          if @mode == MODE_STANDALONE then
-            @solr.add documents
-            log.info 'Sent a commit to Solr.'
-            @solr.commit
-            log.info "Added %d document(s) to Solr" % documents.count
-          elsif @mode == MODE_SOLRCLOUD then
-            @solr.add documents, collection: @collection
-            log.info 'Sent a commit to Solr.'
-            @solr.commit collection: @collection
-            log.info "Added %d document(s) to Solr" % documents.count
-          end
-
+          update documents
           documents.clear
         end
       end
       
-      if documents.count > 0 then
-        if @mode == MODE_STANDALONE then
-          @solr.add documents
-          log.info 'Sent a commit to Solr.'
-          @solr.commit
-          log.info "Added %d document(s) to Solr" % documents.count
-        elsif @mode == MODE_SOLRCLOUD then
-          @solr.add documents, collection: @collection
-          log.info 'Sent a commit to Solr.'
-          @solr.commit collection: @collection
-          log.info "Added %d document(s) to Solr" % documents.count
-        end
+      update documents unless documents.empty?
+    end
 
-        documents.clear
+    def update(documents)
+      if @mode == MODE_STANDALONE then
+        @solr.add documents, :params => {:commit => true}
+        log.info "Added %d document(s) to Solr" % documents.count
+      elsif @mode == MODE_SOLRCLOUD then
+        @solr.add documents, collection: @collection, :params => {:commit => true}
+        log.info "Added %d document(s) to Solr" % documents.count
       end
     end
   end

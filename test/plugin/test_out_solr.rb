@@ -1,5 +1,4 @@
 require 'helper'
-require 'securerandom'
 
 class SolrOutputTest < Test::Unit::TestCase
   def setup
@@ -7,14 +6,12 @@ class SolrOutputTest < Test::Unit::TestCase
   end
 
   CONFIG_STANDALONE = %[
-    mode                Standalone
     url                 http://localhost:8983/solr/collection1
     batch_size          100
   ]
 
   CONFIG_SOLRCLOUD = %[
-    mode                SolrCloud
-    zk_host             localhost:2181/solr
+    zk_host             localhost:3292/solr
     collection          collection1
     batch_size          100
   ]
@@ -27,42 +24,140 @@ class SolrOutputTest < Test::Unit::TestCase
     {'id' => 'change.me', 'title' => 'change.me'}
   end
 
+  def stub_solr(url = 'http://localhost:8983/solr/collection1/update?commit=true&wt=ruby')
+    stub_request(:post, url).with do |req|
+      @index_cmds = req.body
+    end
+  end
+
+  def delete_nodes(zk, path)
+    zk.children(path).each do |node|
+      delete_nodes(zk, File.join(path, node))
+    end
+    zk.delete(path)
+  rescue ZK::Exceptions::NoNode
+  end
+
+  def create_nodes(zk, path)
+    parent_path = File.dirname(path)
+    unless zk.exists?(parent_path, :watch => true) then
+      create_nodes(zk, parent_path)
+    end
+    zk.create(path)
+  end
+
   def test_configure_standalone
     d = create_driver CONFIG_STANDALONE
-    assert_equal 'Standalone', d.instance.mode
     assert_equal 'http://localhost:8983/solr/collection1', d.instance.url
-    assert_equal 100, d.instance.batch_size
-
-    d = create_driver CONFIG_SOLRCLOUD
-    assert_equal 'SolrCloud', d.instance.mode
-    assert_equal 'localhost:2181/solr', d.instance.zk_host
     assert_equal 100, d.instance.batch_size
   end
 
-  def test_format
+  def test_configure_solrcloud
+    d = create_driver CONFIG_SOLRCLOUD
+    assert_equal 'localhost:3292/solr', d.instance.zk_host
+    assert_equal 'collection1', d.instance.collection
+    assert_equal 100, d.instance.batch_size
+  end
+
+  def test_format_standalone
     time = Time.parse("2016-01-01 09:00:00 UTC").to_i
+
+    stub_solr 'http://localhost:8983/solr/collection1/update?commit=true&wt=ruby'
 
     d = create_driver CONFIG_STANDALONE
     d.emit(sample_record, time)
     d.expect_format "\x93\xA4test\xCEV\x86@\x10\x82\xA2id\xA9change.me\xA5title\xA9change.me".force_encoding("ascii-8bit")
     d.run
 
-    # d = create_driver CONFIG_SOLRCLOUD
-    # d.emit(sample_record, time)
-    # d.expect_format "\x93\xA4test\xCEV\x86@\x10\x82\xA2id\xA9change.me\xA5title\xA9change.me".force_encoding("ascii-8bit")
-    # d.run
+    assert_equal('<?xml version="1.0" encoding="UTF-8"?><add><doc><field name="id">change.me</field><field name="title">change.me</field></doc></add>', @index_cmds)
   end
 
-  def test_write
+  def test_format_solrcloud
+    server = ZK::Server.new do |config|
+      config.client_port = 3292
+      config.enable_jmx = true
+      config.force_sync = false
+    end
+
+    server.run
+
+    zk = ZK.new('localhost:3292')
+    delete_nodes(zk, '/solr')
+    create_nodes(zk, '/solr/live_nodes')
+    create_nodes(zk, '/solr/collections')
+    ['localhost:8983_solr'].each do |node|
+      zk.create("/solr/live_nodes/#{node}", '', mode: :ephemeral)
+    end
+    ['collection1'].each do |collection|
+      zk.create("/solr/collections/#{collection}")
+      json = File.read("test/files/collections/#{collection}/state.json")
+      zk.create("/solr/collections/#{collection}/state.json", json, mode: :ephemeral)
+    end
+    
+    time = Time.parse("2016-01-01 09:00:00 UTC").to_i
+
+    stub_solr 'http://localhost:8983/solr/collection1/update?commit=true&wt=ruby'
+
+    d = create_driver CONFIG_SOLRCLOUD
+    d.emit(sample_record, time)
+    d.expect_format "\x93\xA4test\xCEV\x86@\x10\x82\xA2id\xA9change.me\xA5title\xA9change.me".force_encoding("ascii-8bit")
+    d.run
+
+    assert_equal('<?xml version="1.0" encoding="UTF-8"?><add><doc><field name="id">change.me</field><field name="title">change.me</field></doc></add>', @index_cmds)
+
+    server.shutdown    
+  end
+
+  def test_write_standalone
     d = create_driver
 
-    # time = Time.parse("2011-01-02 13:14:15 UTC").to_i
-    # d.emit({"a"=>1}, time)
-    # d.emit({"a"=>2}, time)
+    time = Time.parse("2016-01-01 09:00:00 UTC").to_i
 
-    # ### FileOutput#write returns path
-    # path = d.run
-    # expect_path = "#{TMP_DIR}/out_file_test._0.log.gz"
-    # assert_equal expect_path, path
+    stub_solr 'http://localhost:8983/solr/collection1/update?commit=true&wt=ruby'
+
+    d = create_driver CONFIG_STANDALONE
+    d.emit(sample_record, time)
+    d.expect_format "\x93\xA4test\xCEV\x86@\x10\x82\xA2id\xA9change.me\xA5title\xA9change.me".force_encoding("ascii-8bit")
+    d.run
+
+    assert_equal('<?xml version="1.0" encoding="UTF-8"?><add><doc><field name="id">change.me</field><field name="title">change.me</field></doc></add>', @index_cmds)
+  end
+
+  def test_write_solrcloud
+    d = create_driver
+
+    server = ZK::Server.new do |config|
+      config.client_port = 3292
+      config.enable_jmx = true
+      config.force_sync = false
+    end
+
+    server.run
+
+    zk = ZK.new('localhost:3292')
+    delete_nodes(zk, '/solr')
+    create_nodes(zk, '/solr/live_nodes')
+    create_nodes(zk, '/solr/collections')
+    ['localhost:8983_solr'].each do |node|
+      zk.create("/solr/live_nodes/#{node}", '', mode: :ephemeral)
+    end
+    ['collection1'].each do |collection|
+      zk.create("/solr/collections/#{collection}")
+      json = File.read("test/files/collections/#{collection}/state.json")
+      zk.create("/solr/collections/#{collection}/state.json", json, mode: :ephemeral)
+    end
+    
+    time = Time.parse("2016-01-01 09:00:00 UTC").to_i
+
+    stub_solr 'http://localhost:8983/solr/collection1/update?commit=true&wt=ruby'
+
+    d = create_driver CONFIG_SOLRCLOUD
+    d.emit(sample_record, time)
+    d.expect_format "\x93\xA4test\xCEV\x86@\x10\x82\xA2id\xA9change.me\xA5title\xA9change.me".force_encoding("ascii-8bit")
+    d.run
+
+    assert_equal('<?xml version="1.0" encoding="UTF-8"?><add><doc><field name="id">change.me</field><field name="title">change.me</field></doc></add>', @index_cmds)
+
+    server.shutdown    
   end
 end

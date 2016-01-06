@@ -1,0 +1,14 @@
+{"collection1":{
+    "replicationFactor":"1",
+    "router":{"name":"compositeId"},
+    "maxShardsPerNode":"1",
+    "autoAddReplicas":"false",
+    "shards":{"shard1":{
+        "range":"80000000-7fffffff",
+        "state":"active",
+        "replicas":{"core_node1":{
+            "core":"collection1_shard1_replica1",
+            "base_url":"http://localhost:8983/solr",
+            "node_name":"localhost:8983_solr",
+            "state":"active",
+            "leader":"true"}}}}}}
