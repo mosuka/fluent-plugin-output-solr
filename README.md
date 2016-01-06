@@ -6,7 +6,7 @@ This is a [Fluentd](http://fluentd.org/) plugin for send data to [Apache Solr](h
 
 Add this line to your application's Gemfile:
 
-```ruby
+```
 gem 'fluent-plugin-out_solr'
 ```
 
@@ -21,7 +21,7 @@ Or install it yourself as:
 ## Examples
 
 ### Sent to standalone Solr
-```ruby
+```
 <match something.logs>
   @type out_solr
 
@@ -37,7 +37,7 @@ Or install it yourself as:
 ```
 
 ### Sent to SolrCloud
-```ruby
+```
 <match something.logs>
   @type out_solr
 
