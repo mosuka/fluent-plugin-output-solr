@@ -1,8 +1,6 @@
 # Fluent::Plugin::OutSolr
 
-Welcome to your new gem! In this directory, you'll find the files you need to be able to package up your Ruby library into a gem. Put your Ruby code in the file `lib/fluent/plugin/out_solr`. To experiment with that code, run `bin/console` for an interactive prompt.
-
-TODO: Delete this and the text above, and describe your gem
+This is a [Fluentd](http://fluentd.org/) plugin for send data to [Apache Solr](http://lucene.apache.org/solr/).
 
 ## Installation
 
@@ -20,17 +18,46 @@ Or install it yourself as:
 
     $ gem install fluent-plugin-out_solr
 
-## Usage
+## Examples
 
-TODO: Write usage instructions here
+### Sent to standalone Solr
+```ruby
+<match something.logs>
+  @type out_solr
+
+  url http://localhost:8983/solr/collection1
+
+  batch_size 100
+
+  buffer_type memory
+  buffer_queue_limit 64m
+  buffer_chunk_limit 8m
+  flush_interval 10s
+</match>
+```
+
+### Sent to SolrCloud
+```ruby
+<match something.logs>
+  @type out_solr
+
+  zk_host localhost:2181/solr
+  collection collection1
+
+  batch_size 100
+
+  buffer_type memory
+  buffer_queue_limit 64m
+  buffer_chunk_limit 8m
+  flush_interval 10s
+</match>
+```
 
 ## Development
 
-After checking out the repo, run `bin/setup` to install dependencies. Then, run `rake spec` to run the tests. You can also run `bin/console` for an interactive prompt that will allow you to experiment.
-
-To install this gem onto your local machine, run `bundle exec rake install`. To release a new version, update the version number in `version.rb`, and then run `bundle exec rake release`, which will create a git tag for the version, push git commits and tags, and push the `.gem` file to [rubygems.org](https://rubygems.org).
+After checking out the repo, run `bundle install` to install dependencies. Then, run `rake test` to run the tests.
 
 ## Contributing
 
-Bug reports and pull requests are welcome on GitHub at https://github.com/[USERNAME]/fluent-plugin-out_solr.
+Bug reports and pull requests are welcome on GitHub at https://github.com/mosuka/fluent-plugin-out_solr.
 
