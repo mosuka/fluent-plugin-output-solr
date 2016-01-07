@@ -5,7 +5,7 @@ require 'rsolr/cloud'
 
 module Fluent
   class SolrOutput < BufferedOutput
-    Fluent::Plugin.register_output('out_solr', self)
+    Fluent::Plugin.register_output('output-solr', self)
 
     config_param :url, :string, :default => nil,
                   :desc => 'The Solr server url (for example http://localhost:8983/solr/collection1).'

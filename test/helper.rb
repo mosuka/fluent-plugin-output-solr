@@ -33,7 +33,7 @@ unless ENV.has_key?('VERBOSE')
   $log = nulllogger
 end
 
-require 'fluent/plugin/out_solr'
+require 'fluent/plugin/output-solr'
 
 class Test::Unit::TestCase
 end

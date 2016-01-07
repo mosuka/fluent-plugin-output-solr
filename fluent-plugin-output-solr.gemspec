@@ -3,14 +3,14 @@ lib = File.expand_path('../lib', __FILE__)
 $LOAD_PATH.unshift(lib) unless $LOAD_PATH.include?(lib)
 
 Gem::Specification.new do |spec|
-  spec.name          = "fluent-plugin-out_solr"
+  spec.name          = "fluent-plugin-output-solr"
   spec.version       = "0.1.0"
   spec.authors       = ["Minoru Osuka"]
   spec.email         = ["minoru.osuka@gmail.com"]
 
   spec.summary       = %q{Solr output plugin for Fluent event collector}
   spec.description   = spec.summary
-  spec.homepage      = "https://github.com/mosuka/fluent-plugin-out_solr"
+  spec.homepage      = "https://github.com/mosuka/fluent-plugin-output-solr"
 
   spec.license       = "Apache-2.0"
 

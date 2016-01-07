@@ -7,7 +7,7 @@ This is a [Fluentd](http://fluentd.org/) plugin for send data to [Apache Solr](h
 Add this line to your application's Gemfile:
 
 ```
-gem 'fluent-plugin-out_solr'
+gem 'fluent-plugin-output-solr'
 ```
 
 And then execute:
@@ -16,7 +16,7 @@ And then execute:
 
 Or install it yourself as:
 
-    $ gem install fluent-plugin-out_solr
+    $ gem install fluent-plugin-output-solr
 
 ## Examples
 
@@ -59,5 +59,5 @@ After checking out the repo, run `bundle install` to install dependencies. Then,
 
 ## Contributing
 
-Bug reports and pull requests are welcome on GitHub at https://github.com/mosuka/fluent-plugin-out_solr.
+Bug reports and pull requests are welcome on GitHub at https://github.com/mosuka/fluent-plugin-output-solr.
 
