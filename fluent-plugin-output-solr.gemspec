@@ -8,8 +8,8 @@ Gem::Specification.new do |spec|
   spec.authors       = ["Minoru Osuka"]
   spec.email         = ["minoru.osuka@gmail.com"]
 
-  spec.summary       = %q{Solr output plugin for Fluent event collector}
-  spec.description   = spec.summary
+  spec.summary       = "Fluent output plugin to send to Apache Solr."
+  spec.description   = "Fluent output plugin to send to Apache Solr. It support SolrCloud not only Standalone Solr."
   spec.homepage      = "https://github.com/mosuka/fluent-plugin-output-solr"
 
   spec.license       = "Apache-2.0"

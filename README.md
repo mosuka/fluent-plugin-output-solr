@@ -1,6 +1,6 @@
 # Fluent::Plugin::OutSolr
 
-This is a [Fluentd](http://fluentd.org/) plugin for send data to [Apache Solr](http://lucene.apache.org/solr/).
+This is a [Fluentd](http://fluentd.org/) output plugin for send data to [Apache Solr](http://lucene.apache.org/solr/). It support [SolrCloud](https://cwiki.apache.org/confluence/display/solr/SolrCloud) not only Standalone Solr.
 
 ## Installation
 
