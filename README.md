@@ -23,7 +23,7 @@ Or install it yourself as:
 ### Sent to standalone Solr
 ```
 <match something.logs>
-  @type out_solr
+  @type solr
 
   url http://localhost:8983/solr/collection1
 
@@ -39,7 +39,7 @@ Or install it yourself as:
 ### Sent to SolrCloud
 ```
 <match something.logs>
-  @type out_solr
+  @type solr
 
   zk_host localhost:2181/solr
   collection collection1
