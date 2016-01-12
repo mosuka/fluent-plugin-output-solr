@@ -111,7 +111,7 @@ flush_size 100
   zk_host localhost:2181/solr
 
   # The SolrCloud collection name (default collection1).
-  collection1 collection1
+  collection collection1
 
   buffer_type memory
   buffer_queue_limit 64m
