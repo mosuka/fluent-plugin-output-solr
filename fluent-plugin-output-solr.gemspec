@@ -4,12 +4,12 @@ $LOAD_PATH.unshift(lib) unless $LOAD_PATH.include?(lib)
 
 Gem::Specification.new do |spec|
   spec.name          = "fluent-plugin-output-solr"
-  spec.version       = "0.1.1"
+  spec.version       = "0.2.0"
   spec.authors       = ["Minoru Osuka"]
   spec.email         = ["minoru.osuka@gmail.com"]
 
-  spec.summary       = "Fluent output plugin to send to Apache Solr."
-  spec.description   = "Fluent output plugin to send to Apache Solr. It support SolrCloud not only Standalone Solr."
+  spec.summary       = "Fluent output plugin for sending data to Apache Solr."
+  spec.description   = "Fluent output plugin for sending data to Apache Solr. It support SolrCloud not only Standalone Solr."
   spec.homepage      = "https://github.com/mosuka/fluent-plugin-output-solr"
 
   spec.license       = "Apache-2.0"

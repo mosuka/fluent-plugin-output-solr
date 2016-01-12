@@ -6,14 +6,22 @@ class SolrOutputTest < Test::Unit::TestCase
   end
 
   CONFIG_STANDALONE = %[
-    url                 http://localhost:8983/solr/collection1
-    batch_size          100
+    url                     http://localhost:8983/solr/collection1
+    defined_fields          ["id", "title"]
+    ignore_undefined_field  true
+    unique_key_field        id
+    timestamp_field         event_timestamp
+    flush_size              100
   ]
 
   CONFIG_SOLRCLOUD = %[
-    zk_host             localhost:3292/solr
-    collection          collection1
-    batch_size          100
+    zk_host                 localhost:3292/solr
+    collection              collection1
+    defined_fields          ["id", "title"]
+    ignore_undefined_field  true
+    unique_key_field        id
+    timestamp_field         event_timestamp
+    flush_size              100
   ]
 
   def create_driver(conf = CONFIG_STANDALONE, tag='test')
@@ -24,7 +32,13 @@ class SolrOutputTest < Test::Unit::TestCase
     {'id' => 'change.me', 'title' => 'change.me'}
   end
 
-  def stub_solr(url = 'http://localhost:8983/solr/collection1/update?commit=true&wt=ruby')
+  def stub_solr_update(url = 'http://localhost:8983/solr/collection1/update?commit=true&wt=ruby')
+    stub_request(:post, url).with do |req|
+      @index_cmds = req.body
+    end
+  end
+
+  def stub_solr_unique_key(url = 'http://localhost:8983/solr/collection1/schema/uniquekey')
     stub_request(:post, url).with do |req|
       @index_cmds = req.body
     end
@@ -49,27 +63,25 @@ class SolrOutputTest < Test::Unit::TestCase
   def test_configure_standalone
     d = create_driver CONFIG_STANDALONE
     assert_equal 'http://localhost:8983/solr/collection1', d.instance.url
-    assert_equal 100, d.instance.batch_size
+    assert_equal 100, d.instance.flush_size
   end
 
   def test_configure_solrcloud
     d = create_driver CONFIG_SOLRCLOUD
     assert_equal 'localhost:3292/solr', d.instance.zk_host
     assert_equal 'collection1', d.instance.collection
-    assert_equal 100, d.instance.batch_size
+    assert_equal 100, d.instance.flush_size
   end
 
   def test_format_standalone
     time = Time.parse("2016-01-01 09:00:00 UTC").to_i
 
-    stub_solr 'http://localhost:8983/solr/collection1/update?commit=true&wt=ruby'
+    stub_solr_update 'http://localhost:8983/solr/collection1/update?commit=true&wt=ruby'
 
     d = create_driver CONFIG_STANDALONE
     d.emit(sample_record, time)
     d.expect_format "\x93\xA4test\xCEV\x86@\x10\x82\xA2id\xA9change.me\xA5title\xA9change.me".force_encoding("ascii-8bit")
     d.run
-
-    assert_equal('<?xml version="1.0" encoding="UTF-8"?><add><doc><field name="id">change.me</field><field name="title">change.me</field></doc></add>', @index_cmds)
   end
 
   def test_format_solrcloud
@@ -96,16 +108,14 @@ class SolrOutputTest < Test::Unit::TestCase
     
     time = Time.parse("2016-01-01 09:00:00 UTC").to_i
 
-    stub_solr 'http://localhost:8983/solr/collection1/update?commit=true&wt=ruby'
+    stub_solr_update 'http://localhost:8983/solr/collection1/update?commit=true&wt=ruby'
 
     d = create_driver CONFIG_SOLRCLOUD
     d.emit(sample_record, time)
     d.expect_format "\x93\xA4test\xCEV\x86@\x10\x82\xA2id\xA9change.me\xA5title\xA9change.me".force_encoding("ascii-8bit")
     d.run
 
-    assert_equal('<?xml version="1.0" encoding="UTF-8"?><add><doc><field name="id">change.me</field><field name="title">change.me</field></doc></add>', @index_cmds)
-
-    server.shutdown    
+    server.shutdown
   end
 
   def test_write_standalone
@@ -113,14 +123,17 @@ class SolrOutputTest < Test::Unit::TestCase
 
     time = Time.parse("2016-01-01 09:00:00 UTC").to_i
 
-    stub_solr 'http://localhost:8983/solr/collection1/update?commit=true&wt=ruby'
+    stub_solr_update 'http://localhost:8983/solr/collection1/update?commit=true&wt=ruby'
 
     d = create_driver CONFIG_STANDALONE
+
+    d.instance.unique_key_field = 'id'
+    d.instance.defined_fields = ['id', 'title']
+
     d.emit(sample_record, time)
-    d.expect_format "\x93\xA4test\xCEV\x86@\x10\x82\xA2id\xA9change.me\xA5title\xA9change.me".force_encoding("ascii-8bit")
     d.run
 
-    assert_equal('<?xml version="1.0" encoding="UTF-8"?><add><doc><field name="id">change.me</field><field name="title">change.me</field></doc></add>', @index_cmds)
+    assert_equal('<?xml version="1.0" encoding="UTF-8"?><add><doc><field name="id">change.me</field><field name="title">change.me</field><field name="event_timestamp">2016-01-01T09:00:00Z</field></doc></add>', @index_cmds)
   end
 
   def test_write_solrcloud
@@ -149,14 +162,17 @@ class SolrOutputTest < Test::Unit::TestCase
     
     time = Time.parse("2016-01-01 09:00:00 UTC").to_i
 
-    stub_solr 'http://localhost:8983/solr/collection1/update?commit=true&wt=ruby'
+    stub_solr_update 'http://localhost:8983/solr/collection1/update?commit=true&wt=ruby'
 
     d = create_driver CONFIG_SOLRCLOUD
+
+    d.instance.unique_key_field = 'id'
+    d.instance.defined_fields = ['id', 'title']
+
     d.emit(sample_record, time)
-    d.expect_format "\x93\xA4test\xCEV\x86@\x10\x82\xA2id\xA9change.me\xA5title\xA9change.me".force_encoding("ascii-8bit")
     d.run
 
-    assert_equal('<?xml version="1.0" encoding="UTF-8"?><add><doc><field name="id">change.me</field><field name="title">change.me</field></doc></add>', @index_cmds)
+    assert_equal('<?xml version="1.0" encoding="UTF-8"?><add><doc><field name="id">change.me</field><field name="title">change.me</field><field name="event_timestamp">2016-01-01T09:00:00Z</field></doc></add>', @index_cmds)
 
     server.shutdown    
   end
