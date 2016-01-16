@@ -68,6 +68,14 @@ A field name of unique key in the Solr schema.xml. If omitted, it will get uniqu
 unique_key_field id
 ```
 
+### tag_field
+
+A field name of fluentd tag in the Solr schema.xml (default tag).
+
+```
+tag_field tag
+```
+
 ### timestamp_field
 
 A field name of event timestamp in the Solr schema.xml (default event_timestamp).

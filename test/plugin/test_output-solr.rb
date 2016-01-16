@@ -10,6 +10,7 @@ class SolrOutputTest < Test::Unit::TestCase
     defined_fields          ["id", "title"]
     ignore_undefined_field  true
     unique_key_field        id
+    tag_field               tag
     timestamp_field         event_timestamp
     flush_size              100
   ]
@@ -20,6 +21,7 @@ class SolrOutputTest < Test::Unit::TestCase
     defined_fields          ["id", "title"]
     ignore_undefined_field  true
     unique_key_field        id
+    tag_field               tag
     timestamp_field         event_timestamp
     flush_size              100
   ]
@@ -133,7 +135,7 @@ class SolrOutputTest < Test::Unit::TestCase
     d.emit(sample_record, time)
     d.run
 
-    assert_equal('<?xml version="1.0" encoding="UTF-8"?><add><doc><field name="id">change.me</field><field name="title">change.me</field><field name="event_timestamp">2016-01-01T09:00:00Z</field></doc></add>', @index_cmds)
+    assert_equal('<?xml version="1.0" encoding="UTF-8"?><add><doc><field name="id">change.me</field><field name="title">change.me</field><field name="tag">test</field><field name="event_timestamp">2016-01-01T09:00:00Z</field></doc></add>', @index_cmds)
   end
 
   def test_write_solrcloud
@@ -172,7 +174,7 @@ class SolrOutputTest < Test::Unit::TestCase
     d.emit(sample_record, time)
     d.run
 
-    assert_equal('<?xml version="1.0" encoding="UTF-8"?><add><doc><field name="id">change.me</field><field name="title">change.me</field><field name="event_timestamp">2016-01-01T09:00:00Z</field></doc></add>', @index_cmds)
+    assert_equal('<?xml version="1.0" encoding="UTF-8"?><add><doc><field name="id">change.me</field><field name="title">change.me</field><field name="tag">test</field><field name="event_timestamp">2016-01-01T09:00:00Z</field></doc></add>', @index_cmds)
 
     server.shutdown    
   end

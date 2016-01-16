@@ -9,6 +9,7 @@ module Fluent
 
     DEFAULT_COLLECTION = 'collection1'
     DEFAULT_IGNORE_UNDEFINED_FIELDS = false
+    DEFAULT_TAG_FIELD = 'tag'
     DEFAULT_TIMESTAMP_FIELD = 'event_timestamp'
     DEFAULT_FLUSH_SIZE = 100
 
@@ -36,6 +37,8 @@ module Fluent
 
     config_param :unique_key_field, :string, :default => nil,
                  :desc => 'A field name of unique key in the Solr schema.xml. If omitted, it will get unique key via Solr Schema API.'
+    config_param :tag_field, :string, :default => DEFAULT_TAG_FIELD,
+                 :desc => 'A field name of fluentd tag in the Solr schema.xml (default event_timestamp).'
     config_param :timestamp_field, :string, :default => DEFAULT_TIMESTAMP_FIELD,
                  :desc => 'A field name of event timestamp in the Solr schema.xml (default event_timestamp).'
 
@@ -58,6 +61,7 @@ module Fluent
       @ignore_undefined_field = conf.has_key?('ignore_undefined_field') ? conf['ignore_undefined_field'] : DEFAULT_IGNORE_UNDEFINED_FIELDS
 
       @unique_key_field = conf['unique_key_field']
+      @tag_field = conf.has_key?('tag_field') ? conf['tag_field'] : DEFAULT_TAG_FIELD
       @timestamp_field = conf.has_key?('timestamp_field') ? conf['timestamp_field'] : DEFAULT_TIMESTAMP_FIELD
 
       @flush_size = conf.has_key?('flush_size') ? conf['flush_size'].to_i : DEFAULT_FLUSH_SIZE
@@ -104,12 +108,17 @@ module Fluent
       @unique_key = @unique_key_field.nil? ? get_unique_key : @unique_key_field
 
       chunk.msgpack_each do |tag, time, record|
-
         unless record.has_key?(@unique_key) then
           record.merge!({@unique_key => SecureRandom.uuid})
         end
 
-        record.merge!({@timestamp_field => Time.at(time).utc.strftime('%FT%TZ')})
+        unless record.has_key?(@tag_field) then
+          record.merge!({@tag_field => tag})
+        end
+
+        unless record.has_key?(@timestamp_field) then
+          record.merge!({@timestamp_field => Time.at(time).utc.strftime('%FT%TZ')})
+        end
 
         if @ignore_undefined_fields then
           record.each_key do |key|
