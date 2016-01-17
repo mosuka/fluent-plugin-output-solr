@@ -120,12 +120,15 @@ module Fluent
           record.merge!({@timestamp_field => Time.at(time).utc.strftime('%FT%TZ')})
         end
 
-        if @ignore_undefined_fields then
+        log.info record
+
+        if to_boolean(@ignore_undefined_fields) then
           record.each_key do |key|
             unless @fields.include?(key) then
               record.delete(key)
             end
           end
+          log.info record
         end
 
         documents << record
@@ -137,6 +140,12 @@ module Fluent
       end
 
       update documents unless documents.empty?
+    end
+
+    def to_boolean(string)
+      return true if string== true || string =~ (/(true|t|yes|y|1)$/i)
+      return false if string== false || string.nil? || string =~ (/(false|f|no|n|0)$/i)
+      raise ArgumentError.new("invalid value for Boolean: \"#{string}\"")
     end
 
     def update(documents)
