@@ -58,7 +58,7 @@ module Fluent
       @collection = conf.has_key?('collection') ? conf['collection'] : DEFAULT_COLLECTION
 
       @defined_fields = conf['defined_fields']
-      @ignore_undefined_field = conf.has_key?('ignore_undefined_field') ? conf['ignore_undefined_field'] : DEFAULT_IGNORE_UNDEFINED_FIELDS
+      @ignore_undefined_fields = conf.has_key?('ignore_undefined_fields') ? conf['ignore_undefined_fields'] : DEFAULT_IGNORE_UNDEFINED_FIELDS
 
       @unique_key_field = conf['unique_key_field']
       @tag_field = conf.has_key?('tag_field') ? conf['tag_field'] : DEFAULT_TAG_FIELD
