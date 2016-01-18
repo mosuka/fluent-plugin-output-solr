@@ -58,7 +58,7 @@ module Fluent
       @collection = conf.has_key?('collection') ? conf['collection'] : DEFAULT_COLLECTION
 
       @defined_fields = conf['defined_fields']
-      @ignore_undefined_fields = conf.has_key?('ignore_undefined_fields') ? conf['ignore_undefined_fields'] : DEFAULT_IGNORE_UNDEFINED_FIELDS
+      @ignore_undefined_fields = conf.has_key?('ignore_undefined_fields') ? to_boolean(conf['ignore_undefined_fields']) : DEFAULT_IGNORE_UNDEFINED_FIELDS
 
       @unique_key_field = conf['unique_key_field']
       @tag_field = conf.has_key?('tag_field') ? conf['tag_field'] : DEFAULT_TAG_FIELD
@@ -120,16 +120,15 @@ module Fluent
           record.merge!({@timestamp_field => Time.at(time).utc.strftime('%FT%TZ')})
         end
 
-        log.info record
-
-        if to_boolean(@ignore_undefined_fields) then
+        if @ignore_undefined_fields then
           record.each_key do |key|
             unless @fields.include?(key) then
               record.delete(key)
             end
           end
-          log.info record
         end
+
+        log.info "Record: %s" % record.inspect
 
         documents << record
 
@@ -143,10 +142,14 @@ module Fluent
     end
 
     def to_boolean(string)
-      return true if string== true || string =~ (/(true|t|yes|y|1)$/i)
-      return false if string== false || string.nil? || string =~ (/(false|f|no|n|0)$/i)
-      raise ArgumentError.new("invalid value for Boolean: \"#{string}\"")
-    end
+      if string== true || string =~ (/(true|t|yes|y|1)$/i) then
+        return true
+      elsif string== false || string.nil? || string =~ (/(false|f|no|n|0)$/i)
+        return false
+      else
+        return false
+      end
+    end    
 
     def update(documents)
       if @mode == MODE_STANDALONE then
@@ -154,10 +157,10 @@ module Fluent
         log.info "Added %d document(s) to Solr" % documents.count
       elsif @mode == MODE_SOLRCLOUD then
         @solr.add documents, collection: @collection, :params => {:commit => true}
-        log.info "Added %d document(s) to Solr" % documents.count
+        log.info "Update: Added %d document(s) to Solr" % documents.count
       end
       rescue Exception => e
-        log.warn("An error occurred while indexing: #{e.message}")
+        log.warn "Update: An error occurred while indexing: #{e.message}"
     end
 
     def get_unique_key
@@ -170,12 +173,12 @@ module Fluent
       end
 
       unique_key = response['uniqueKey']
-      log.info ("Unique key: #{unique_key}")
+      log.info "Unique key: #{unique_key}"
 
       return unique_key
 
       rescue Exception => e
-        log.warn("An error occurred while indexing: #{e.message}")
+        log.warn "Unique key: #{e.message}"
     end
 
     def get_fields
@@ -191,12 +194,12 @@ module Fluent
       response['fields'].each do |field|
         fields.push(field['name'])
       end
-      log.info ("Fields: #{fields}")
+      log.info "Fields: #{fields}"
 
       return fields
 
       rescue Exception => e
-        log.warn("An error occurred while indexing: #{e.message}")
+        log.warn "Fields: #{e.message}"
     end
   end
 end
