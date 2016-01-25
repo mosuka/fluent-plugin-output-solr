@@ -51,20 +51,6 @@ module Fluent
 
     def configure(conf)
       super
-
-      @url = conf['url']
-
-      @zk_host = conf['zk_host']
-      @collection = conf.has_key?('collection') ? conf['collection'] : DEFAULT_COLLECTION
-
-      @defined_fields = conf['defined_fields']
-      @ignore_undefined_fields = conf.has_key?('ignore_undefined_fields') ? to_boolean(conf['ignore_undefined_fields']) : DEFAULT_IGNORE_UNDEFINED_FIELDS
-
-      @unique_key_field = conf['unique_key_field']
-      @tag_field = conf.has_key?('tag_field') ? conf['tag_field'] : DEFAULT_TAG_FIELD
-      @timestamp_field = conf.has_key?('timestamp_field') ? conf['timestamp_field'] : DEFAULT_TIMESTAMP_FIELD
-
-      @flush_size = conf.has_key?('flush_size') ? conf['flush_size'].to_i : DEFAULT_FLUSH_SIZE
     end
 
     def start
