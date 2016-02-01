@@ -3,12 +3,13 @@ require 'helper'
 class SolrOutputTest < Test::Unit::TestCase
   def setup
     Fluent::Test.setup
+    @zk_server = nil
   end
 
   CONFIG_STANDALONE = %[
     url                     http://localhost:8983/solr/collection1
     defined_fields          ["id", "title"]
-    ignore_undefined_field  true
+    ignore_undefined_fields true
     unique_key_field        id
     tag_field               tag
     timestamp_field         event_timestamp
@@ -19,7 +20,7 @@ class SolrOutputTest < Test::Unit::TestCase
     zk_host                 localhost:3292/solr
     collection              collection1
     defined_fields          ["id", "title"]
-    ignore_undefined_field  true
+    ignore_undefined_fields true
     unique_key_field        id
     tag_field               tag
     timestamp_field         event_timestamp
@@ -65,6 +66,11 @@ class SolrOutputTest < Test::Unit::TestCase
   def test_configure_standalone
     d = create_driver CONFIG_STANDALONE
     assert_equal 'http://localhost:8983/solr/collection1', d.instance.url
+    assert_equal ['id', 'title'], d.instance.defined_fields
+    assert_equal true, d.instance.ignore_undefined_fields
+    assert_equal 'id', d.instance.unique_key_field
+    assert_equal 'tag', d.instance.tag_field
+    assert_equal 'event_timestamp', d.instance.timestamp_field
     assert_equal 100, d.instance.flush_size
   end
 
@@ -72,6 +78,11 @@ class SolrOutputTest < Test::Unit::TestCase
     d = create_driver CONFIG_SOLRCLOUD
     assert_equal 'localhost:3292/solr', d.instance.zk_host
     assert_equal 'collection1', d.instance.collection
+    assert_equal ['id', 'title'], d.instance.defined_fields
+    assert_equal true, d.instance.ignore_undefined_fields
+    assert_equal 'id', d.instance.unique_key_field
+    assert_equal 'tag', d.instance.tag_field
+    assert_equal 'event_timestamp', d.instance.timestamp_field
     assert_equal 100, d.instance.flush_size
   end
 
@@ -87,27 +98,8 @@ class SolrOutputTest < Test::Unit::TestCase
   end
 
   def test_format_solrcloud
-    server = ZK::Server.new do |config|
-      config.client_port = 3292
-      config.enable_jmx = true
-      config.force_sync = false
-    end
+    start_zookeeper
 
-    server.run
-
-    zk = ZK.new('localhost:3292')
-    delete_nodes(zk, '/solr')
-    create_nodes(zk, '/solr/live_nodes')
-    create_nodes(zk, '/solr/collections')
-    ['localhost:8983_solr'].each do |node|
-      zk.create("/solr/live_nodes/#{node}", '', mode: :ephemeral)
-    end
-    ['collection1'].each do |collection|
-      zk.create("/solr/collections/#{collection}")
-      json = File.read("test/files/collections/#{collection}/state.json")
-      zk.create("/solr/collections/#{collection}/state.json", json, mode: :ephemeral)
-    end
-    
     time = Time.parse("2016-01-01 09:00:00 UTC").to_i
 
     stub_solr_update 'http://localhost:8983/solr/collection1/update?commit=true&wt=ruby'
@@ -117,7 +109,7 @@ class SolrOutputTest < Test::Unit::TestCase
     d.expect_format "\x93\xA4test\xCEV\x86@\x10\x82\xA2id\xA9change.me\xA5title\xA9change.me".force_encoding("ascii-8bit")
     d.run
 
-    server.shutdown
+    stop_zookeeper
   end
 
   def test_write_standalone
@@ -129,25 +121,45 @@ class SolrOutputTest < Test::Unit::TestCase
 
     d = create_driver CONFIG_STANDALONE
 
-    d.instance.unique_key_field = 'id'
-    d.instance.defined_fields = ['id', 'title']
+    #d.instance.unique_key_field = 'id'
+    #d.instance.defined_fields = ['id', 'title']
 
     d.emit(sample_record, time)
     d.run
 
-    assert_equal('<?xml version="1.0" encoding="UTF-8"?><add><doc><field name="id">change.me</field><field name="title">change.me</field><field name="tag">test</field><field name="event_timestamp">2016-01-01T09:00:00Z</field></doc></add>', @index_cmds)
+    assert_equal('<?xml version="1.0" encoding="UTF-8"?><add><doc><field name="id">change.me</field><field name="title">change.me</field></doc></add>', @index_cmds)
   end
 
   def test_write_solrcloud
+    start_zookeeper
+
     d = create_driver
 
-    server = ZK::Server.new do |config|
+    time = Time.parse("2016-01-01 09:00:00 UTC").to_i
+
+    stub_solr_update 'http://localhost:8983/solr/collection1/update?commit=true&wt=ruby'
+
+    d = create_driver CONFIG_SOLRCLOUD
+
+    #d.instance.unique_key_field = 'id'
+    #d.instance.defined_fields = ['id', 'title']
+
+    d.emit(sample_record, time)
+    d.run
+
+    assert_equal('<?xml version="1.0" encoding="UTF-8"?><add><doc><field name="id">change.me</field><field name="title">change.me</field></doc></add>', @index_cmds)
+
+    stop_zookeeper  
+  end
+
+  def start_zookeeper
+    @zk_server = ZK::Server.new do |config|
       config.client_port = 3292
       config.enable_jmx = true
       config.force_sync = false
     end
 
-    server.run
+    @zk_server.run
 
     zk = ZK.new('localhost:3292')
     delete_nodes(zk, '/solr')
@@ -161,21 +173,9 @@ class SolrOutputTest < Test::Unit::TestCase
       json = File.read("test/files/collections/#{collection}/state.json")
       zk.create("/solr/collections/#{collection}/state.json", json, mode: :ephemeral)
     end
-    
-    time = Time.parse("2016-01-01 09:00:00 UTC").to_i
+  end
 
-    stub_solr_update 'http://localhost:8983/solr/collection1/update?commit=true&wt=ruby'
-
-    d = create_driver CONFIG_SOLRCLOUD
-
-    d.instance.unique_key_field = 'id'
-    d.instance.defined_fields = ['id', 'title']
-
-    d.emit(sample_record, time)
-    d.run
-
-    assert_equal('<?xml version="1.0" encoding="UTF-8"?><add><doc><field name="id">change.me</field><field name="title">change.me</field><field name="tag">test</field><field name="event_timestamp">2016-01-01T09:00:00Z</field></doc></add>', @index_cmds)
-
-    server.shutdown    
+  def stop_zookeeper
+    @zk_server.shutdown
   end
 end

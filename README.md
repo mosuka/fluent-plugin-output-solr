@@ -68,14 +68,6 @@ A field name of unique key in the Solr schema.xml. If omitted, it will get uniqu
 unique_key_field id
 ```
 
-### tag_field
-
-A field name of fluentd tag in the Solr schema.xml (default tag).
-
-```
-tag_field tag
-```
-
 ### timestamp_field
 
 A field name of event timestamp in the Solr schema.xml (default event_timestamp).
@@ -190,8 +182,8 @@ $ cp -pr server/solr server/solr2
 4.Start SolrCloud
 
 ```sh
-$ ./bin/solr start -p 8983 -z localhost:2181/solr -s server/solr1
-$ ./bin/solr start -p 8985 -z localhost:2181/solr -s server/solr2
+$ ./bin/solr start -h localhost -p 8983 -z localhost:2181/solr -s server/solr1
+$ ./bin/solr start -h localhost -p 8985 -z localhost:2181/solr -s server/solr2
 ```
 
 5.Create collection

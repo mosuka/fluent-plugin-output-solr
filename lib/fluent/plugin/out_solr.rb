@@ -127,16 +127,6 @@ module Fluent
       update documents unless documents.empty?
     end
 
-    def to_boolean(string)
-      if string== true || string =~ (/(true|t|yes|y|1)$/i) then
-        return true
-      elsif string== false || string.nil? || string =~ (/(false|f|no|n|0)$/i)
-        return false
-      else
-        return false
-      end
-    end    
-
     def update(documents)
       if @mode == MODE_STANDALONE then
         @solr.add documents, :params => {:commit => true}
