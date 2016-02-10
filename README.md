@@ -94,11 +94,6 @@ flush_size 100
 
   # The Solr server url (for example http://localhost:8983/solr/collection1).
   url http://localhost:8983/solr/collection1
-
-  buffer_type memory
-  buffer_queue_limit 64m
-  buffer_chunk_limit 8m
-  flush_interval 10s
 </match>
 ```
 
@@ -112,11 +107,6 @@ flush_size 100
 
   # The SolrCloud collection name (default collection1).
   collection collection1
-
-  buffer_type memory
-  buffer_queue_limit 64m
-  buffer_chunk_limit 8m
-  flush_interval 10s
 </match>
 ```
 
