@@ -102,7 +102,14 @@ module Fluent
           record.merge!({@tag_field => tag})
         end
 
-        unless record.has_key?(@timestamp_field) then
+        if record.has_key?(@timestamp_field) then
+          begin
+            event_timestamp_dt = DateTime.strptime(record[@timestamp_field], "%d/%b/%Y:%H:%M:%S %z").to_s
+            record.merge!({@timestamp_field => Time.parse(event_timestamp_dt.to_s).utc.strftime('%FT%TZ')})
+          rescue
+            record.merge!({@timestamp_field => Time.at(time).utc.strftime('%FT%TZ')})
+          end
+        else
           record.merge!({@timestamp_field => Time.at(time).utc.strftime('%FT%TZ')})
         end
 
