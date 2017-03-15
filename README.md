@@ -4,19 +4,21 @@ This is a [Fluentd](http://fluentd.org/) output plugin for send data to [Apache 
 
 ## Installation
 
-Add this line to your application's Gemfile:
+Install it yourself as:
 
 ```
-gem 'fluent-plugin-output-solr'
+$ gem install fluent-plugin-output-solr
 ```
 
-And then execute:
+## How to build
 
-    $ bundle
-
-Or install it yourself as:
-
-    $ gem install fluent-plugin-output-solr
+```
+$ gem install bundler
+$ bundle install
+$ rake test
+$ rake build
+$ rake install
+```
 
 ## Config parameters
 
@@ -189,4 +191,3 @@ After checking out the repo, run `bundle install` to install dependencies. Then,
 ## Contributing
 
 Bug reports and pull requests are welcome on GitHub at https://github.com/mosuka/fluent-plugin-output-solr.
-
