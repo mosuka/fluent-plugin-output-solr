@@ -121,7 +121,7 @@ module Fluent
           end
         end
 
-        log.info "Record: %s" % record.inspect
+        log.trace "Record: %s" % record.inspect
 
         documents << record
 
