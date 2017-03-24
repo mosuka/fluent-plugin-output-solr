@@ -137,10 +137,10 @@ module Fluent
     def update(documents)
       if @mode == MODE_STANDALONE then
         @solr.add documents, :params => {:commit => true}
-        log.info "Added %d document(s) to Solr" % documents.count
+        log.debug "Added %d document(s) to Solr" % documents.count
       elsif @mode == MODE_SOLRCLOUD then
         @solr.add documents, collection: @collection, :params => {:commit => true}
-        log.info "Update: Added %d document(s) to Solr" % documents.count
+        log.debug "Update: Added %d document(s) to Solr" % documents.count
       end
       rescue Exception => e
         log.warn "Update: An error occurred while indexing: #{e.message}"
@@ -156,7 +156,7 @@ module Fluent
       end
 
       unique_key = response['uniqueKey']
-      log.info "Unique key: #{unique_key}"
+      log.debug "Unique key: #{unique_key}"
 
       return unique_key
 
@@ -177,7 +177,7 @@ module Fluent
       response['fields'].each do |field|
         fields.push(field['name'])
       end
-      log.info "Fields: #{fields}"
+      log.debug "Fields: #{fields}"
 
       return fields
 
