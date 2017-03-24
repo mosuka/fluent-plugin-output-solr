@@ -121,8 +121,6 @@ module Fluent
           end
         end
 
-        log.trace "Record: %s" % record.inspect
-
         documents << record
 
         if documents.count >= @flush_size
