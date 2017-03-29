@@ -14,6 +14,7 @@ class SolrOutputTest < Test::Unit::TestCase
     tag_field               tag
     timestamp_field         event_timestamp
     flush_size              100
+    commit_with_flush       true
   ]
 
   CONFIG_SOLRCLOUD = %[
@@ -25,6 +26,7 @@ class SolrOutputTest < Test::Unit::TestCase
     tag_field               tag
     timestamp_field         event_timestamp
     flush_size              100
+    commit_with_flush       true
   ]
 
   def create_driver(conf = CONFIG_STANDALONE, tag='test')
@@ -72,6 +74,7 @@ class SolrOutputTest < Test::Unit::TestCase
     assert_equal 'tag', d.instance.tag_field
     assert_equal 'event_timestamp', d.instance.timestamp_field
     assert_equal 100, d.instance.flush_size
+    assert_equal true, d.instance.commit_with_flush
   end
 
   def test_configure_solrcloud
@@ -84,6 +87,7 @@ class SolrOutputTest < Test::Unit::TestCase
     assert_equal 'tag', d.instance.tag_field
     assert_equal 'event_timestamp', d.instance.timestamp_field
     assert_equal 100, d.instance.flush_size
+    assert_equal true, d.instance.commit_with_flush
   end
 
   def test_format_standalone
@@ -113,8 +117,6 @@ class SolrOutputTest < Test::Unit::TestCase
   end
 
   def test_write_standalone
-    d = create_driver
-
     time = Time.parse("2016-01-01 09:00:00 UTC").to_i
 
     stub_solr_update 'http://localhost:8983/solr/collection1/update?commit=true&wt=ruby'
@@ -132,8 +134,6 @@ class SolrOutputTest < Test::Unit::TestCase
 
   def test_write_solrcloud
     start_zookeeper
-
-    d = create_driver
 
     time = Time.parse("2016-01-01 09:00:00 UTC").to_i
 
