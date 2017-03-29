@@ -2,24 +2,25 @@ require 'securerandom'
 require 'rsolr'
 require 'zk'
 require 'rsolr/cloud'
+require 'fluent/plugin/output'
 
-module Fluent
-  class SolrOutput < BufferedOutput
+module Fluent::Plugin
+  class SolrOutput < Output
     Fluent::Plugin.register_output('solr', self)
+
+    helpers :inject, :compat_parameters
 
     DEFAULT_COLLECTION = 'collection1'
     DEFAULT_IGNORE_UNDEFINED_FIELDS = false
     DEFAULT_TAG_FIELD = 'tag'
     DEFAULT_TIMESTAMP_FIELD = 'event_timestamp'
     DEFAULT_FLUSH_SIZE = 100
+    DEFAULT_BUFFER_TYPE = "memory"
 
     MODE_STANDALONE = 'Standalone'
     MODE_SOLRCLOUD = 'SolrCloud'
 
-    include Fluent::SetTagKeyMixin
     config_set_default :include_tag_key, false
-
-    include Fluent::SetTimeKeyMixin
     config_set_default :include_time_key, false
 
     config_param :url, :string, :default => nil,
@@ -31,9 +32,9 @@ module Fluent
                  :desc => 'The SolrCloud collection name (default collection1).'
 
     config_param :defined_fields, :array, :default => nil,
-                 :desc => 'The defined fields in the Solr schema.xml. If omitted, it will get fields via Solr Schema API.'                 
+                 :desc => 'The defined fields in the Solr schema.xml. If omitted, it will get fields via Solr Schema API.'
     config_param :ignore_undefined_fields, :bool, :default => DEFAULT_IGNORE_UNDEFINED_FIELDS,
-                 :desc => 'Ignore undefined fields in the Solr schema.xml.'                 
+                 :desc => 'Ignore undefined fields in the Solr schema.xml.'
 
     config_param :unique_key_field, :string, :default => nil,
                  :desc => 'A field name of unique key in the Solr schema.xml. If omitted, it will get unique key via Solr Schema API.'
@@ -45,11 +46,17 @@ module Fluent
     config_param :flush_size, :integer, :default => DEFAULT_FLUSH_SIZE,
                  :desc => 'A number of events to queue up before writing to Solr (default 100).'
 
+    config_section :buffer do
+      config_set_default :@type, DEFAULT_BUFFER_TYPE
+      config_set_default :chunk_keys, ['tag']
+    end
+
     def initialize
       super
     end
 
     def configure(conf)
+      compat_parameters_convert(conf, :inject)
       super
     end
 
@@ -84,7 +91,15 @@ module Fluent
     end
 
     def format(tag, time, record)
-      [tag, time, record].to_msgpack
+      [time, record].to_msgpack
+    end
+
+    def formatted_to_msgpack_binary
+      true
+    end
+
+    def multi_workers_ready?
+      true
     end
 
     def write(chunk)
@@ -92,8 +107,10 @@ module Fluent
 
       @fields = @defined_fields.nil? ? get_fields : @defined_fields
       @unique_key = @unique_key_field.nil? ? get_unique_key : @unique_key_field
+      tag = chunk.metadata.tag
+      chunk.msgpack_each do |time, record|
+        record = inject_values_to_record(tag, time, record)
 
-      chunk.msgpack_each do |tag, time, record|
         unless record.has_key?(@unique_key) then
           record.merge!({@unique_key => SecureRandom.uuid})
         end
