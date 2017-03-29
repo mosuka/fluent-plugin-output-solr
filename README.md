@@ -2,6 +2,16 @@
 
 This is a [Fluentd](http://fluentd.org/) output plugin for send data to [Apache Solr](http://lucene.apache.org/solr/). It support [SolrCloud](https://cwiki.apache.org/confluence/display/solr/SolrCloud) not only Standalone Solr.
 
+## Requirements
+
+| fluent-plugin-output-solr | fluentd         | td-agent | ruby    |
+| ------------------------- | --------------- | -------- | ------- |
+| 1.x.x                     | \>= 0.14.0, < 2 | 3        | \>= 2.1 |
+| 0.x.x                     | ~> 0.12.0       | 2        | \>= 1.9 |
+
+* The 1.x.x series is developed from this branch (master)
+* The 0.x.x series (compatible with fluentd v0.12, and td-agent 2) is developed on the [v0.x.x branch](https://github.com/mosuka/fluent-plugin-output-solr/tree/v0.x.x)
+
 ## Installation
 
 Install it yourself as:
@@ -86,6 +96,13 @@ A number of events to queue up before writing to Solr (default 100).
 flush_size 100
 ```
 
+### commit_with_flush
+
+Send commit command to Solr with flush (default true).
+
+```
+commit_with_flush true
+```
 
 ## Plugin setup examples
 
