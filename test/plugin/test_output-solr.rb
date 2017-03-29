@@ -27,8 +27,8 @@ class SolrOutputTest < Test::Unit::TestCase
     flush_size              100
   ]
 
-  def create_driver(conf = CONFIG_STANDALONE, tag='test')
-    Fluent::Test::BufferedOutputTestDriver.new(Fluent::SolrOutput, tag).configure(conf)
+  def create_driver(conf = CONFIG_STANDALONE)
+    Fluent::Test::Driver::Output.new(Fluent::Plugin::SolrOutput).configure(conf)
   end
 
   def sample_record
@@ -92,9 +92,10 @@ class SolrOutputTest < Test::Unit::TestCase
     stub_solr_update 'http://localhost:8983/solr/collection1/update?commit=true&wt=ruby'
 
     d = create_driver CONFIG_STANDALONE
-    d.emit(sample_record, time)
-    d.expect_format "\x93\xA4test\xCEV\x86@\x10\x82\xA2id\xA9change.me\xA5title\xA9change.me".force_encoding("ascii-8bit")
-    d.run
+    d.run(default_tag: "test") do
+      d.feed(time, sample_record)
+    end
+    assert_equal "\x93\xA4test\xCEV\x86@\x10\x82\xA2id\xA9change.me\xA5title\xA9change.me".force_encoding("ascii-8bit"), d.formatted[0]
   end
 
   def test_format_solrcloud
@@ -105,9 +106,10 @@ class SolrOutputTest < Test::Unit::TestCase
     stub_solr_update 'http://localhost:8983/solr/collection1/update?commit=true&wt=ruby'
 
     d = create_driver CONFIG_SOLRCLOUD
-    d.emit(sample_record, time)
-    d.expect_format "\x93\xA4test\xCEV\x86@\x10\x82\xA2id\xA9change.me\xA5title\xA9change.me".force_encoding("ascii-8bit")
-    d.run
+    d.run(default_tag: "test") do
+      d.feed(time, sample_record)
+    end
+    assert_equal "\x93\xA4test\xCEV\x86@\x10\x82\xA2id\xA9change.me\xA5title\xA9change.me".force_encoding("ascii-8bit"), d.formatted[0]
 
     stop_zookeeper
   end
@@ -124,8 +126,9 @@ class SolrOutputTest < Test::Unit::TestCase
     #d.instance.unique_key_field = 'id'
     #d.instance.defined_fields = ['id', 'title']
 
-    d.emit(sample_record, time)
-    d.run
+    d.run(default_tag: "test") do
+      d.feed(time, sample_record)
+    end
 
     assert_equal('<?xml version="1.0" encoding="UTF-8"?><add><doc><field name="id">change.me</field><field name="title">change.me</field></doc></add>', @index_cmds)
   end
@@ -144,12 +147,13 @@ class SolrOutputTest < Test::Unit::TestCase
     #d.instance.unique_key_field = 'id'
     #d.instance.defined_fields = ['id', 'title']
 
-    d.emit(sample_record, time)
-    d.run
+    d.run(default_tag: "test") do
+      d.feed(time, sample_record)
+    end
 
     assert_equal('<?xml version="1.0" encoding="UTF-8"?><add><doc><field name="id">change.me</field><field name="title">change.me</field></doc></add>', @index_cmds)
 
-    stop_zookeeper  
+    stop_zookeeper
   end
 
   def start_zookeeper
