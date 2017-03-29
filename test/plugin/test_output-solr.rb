@@ -95,7 +95,7 @@ class SolrOutputTest < Test::Unit::TestCase
     d.run(default_tag: "test") do
       d.feed(time, sample_record)
     end
-    assert_equal "\x93\xA4test\xCEV\x86@\x10\x82\xA2id\xA9change.me\xA5title\xA9change.me".force_encoding("ascii-8bit"), d.formatted[0]
+    assert_equal [time, sample_record].to_msgpack, d.formatted[0], d.formatted[0]
   end
 
   def test_format_solrcloud
@@ -109,7 +109,7 @@ class SolrOutputTest < Test::Unit::TestCase
     d.run(default_tag: "test") do
       d.feed(time, sample_record)
     end
-    assert_equal "\x93\xA4test\xCEV\x86@\x10\x82\xA2id\xA9change.me\xA5title\xA9change.me".force_encoding("ascii-8bit"), d.formatted[0]
+    assert_equal [time, sample_record].to_msgpack, d.formatted[0]
 
     stop_zookeeper
   end

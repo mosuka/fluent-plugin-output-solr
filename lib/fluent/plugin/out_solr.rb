@@ -91,7 +91,7 @@ module Fluent::Plugin
     end
 
     def format(tag, time, record)
-      [tag, time, record].to_msgpack
+      [time, record].to_msgpack
     end
 
     def formatted_to_msgpack_binary
@@ -107,8 +107,8 @@ module Fluent::Plugin
 
       @fields = @defined_fields.nil? ? get_fields : @defined_fields
       @unique_key = @unique_key_field.nil? ? get_unique_key : @unique_key_field
-
-      chunk.msgpack_each do |tag, time, record|
+      tag = chunk.metadata.tag
+      chunk.msgpack_each do |time, record|
         record = inject_values_to_record(tag, time, record)
 
         unless record.has_key?(@unique_key) then
