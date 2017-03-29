@@ -4,7 +4,7 @@ $LOAD_PATH.unshift(lib) unless $LOAD_PATH.include?(lib)
 
 Gem::Specification.new do |spec|
   spec.name          = "fluent-plugin-output-solr"
-  spec.version       = "0.4.4"
+  spec.version       = "0.4.5"
   spec.authors       = ["Minoru Osuka"]
   spec.email         = ["minoru.osuka@gmail.com"]
 
@@ -19,7 +19,7 @@ Gem::Specification.new do |spec|
   spec.executables   = spec.files.grep(%r{^exe/}) { |f| File.basename(f) }
   spec.require_paths = ["lib"]
 
-  spec.add_runtime_dependency 'fluentd', '~> 0.12.32'
+  spec.add_runtime_dependency 'fluentd', '~> 0.12.0'
   spec.add_runtime_dependency 'rsolr-cloud', '~> 1.1.0'
   spec.add_runtime_dependency 'rsolr', '~> 1.0.12'
   spec.add_runtime_dependency 'zk', '~> 1.9.5'

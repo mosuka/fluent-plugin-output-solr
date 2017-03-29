@@ -12,6 +12,7 @@ module Fluent
     DEFAULT_TAG_FIELD = 'tag'
     DEFAULT_TIMESTAMP_FIELD = 'event_timestamp'
     DEFAULT_FLUSH_SIZE = 100
+    DEFAULT_COMMIT_WITH_FLUSH = true
 
     MODE_STANDALONE = 'Standalone'
     MODE_SOLRCLOUD = 'SolrCloud'
@@ -44,6 +45,9 @@ module Fluent
 
     config_param :flush_size, :integer, :default => DEFAULT_FLUSH_SIZE,
                  :desc => 'A number of events to queue up before writing to Solr (default 100).'
+
+    config_param :commit_with_flush, :bool, :default => DEFAULT_COMMIT_WITH_FLUSH,
+                 :desc => 'Send commit command to Solr with flush (default true).'
 
     def initialize
       super
@@ -134,10 +138,10 @@ module Fluent
 
     def update(documents)
       if @mode == MODE_STANDALONE then
-        @solr.add documents, :params => {:commit => true}
+        @solr.add documents, :params => {:commit => @commit_with_flush}
         log.debug "Added %d document(s) to Solr" % documents.count
       elsif @mode == MODE_SOLRCLOUD then
-        @solr.add documents, collection: @collection, :params => {:commit => true}
+        @solr.add documents, collection: @collection, :params => {:commit => @commit_with_flush}
         log.debug "Update: Added %d document(s) to Solr" % documents.count
       end
       rescue Exception => e
