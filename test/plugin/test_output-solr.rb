@@ -1,6 +1,8 @@
 require 'helper'
 
 class SolrOutputTest < Test::Unit::TestCase
+  include Fluent::Test::Helpers
+
   def setup
     Fluent::Test.setup
     @zk_server = nil
@@ -87,7 +89,7 @@ class SolrOutputTest < Test::Unit::TestCase
   end
 
   def test_format_standalone
-    time = Time.parse("2016-01-01 09:00:00 UTC").to_i
+    time = event_time("2016-01-01 09:00:00 UTC")
 
     stub_solr_update 'http://localhost:8983/solr/collection1/update?commit=true&wt=ruby'
 
@@ -101,7 +103,7 @@ class SolrOutputTest < Test::Unit::TestCase
   def test_format_solrcloud
     start_zookeeper
 
-    time = Time.parse("2016-01-01 09:00:00 UTC").to_i
+    time = event_time("2016-01-01 09:00:00 UTC")
 
     stub_solr_update 'http://localhost:8983/solr/collection1/update?commit=true&wt=ruby'
 
@@ -117,7 +119,7 @@ class SolrOutputTest < Test::Unit::TestCase
   def test_write_standalone
     d = create_driver
 
-    time = Time.parse("2016-01-01 09:00:00 UTC").to_i
+    time = event_time("2016-01-01 09:00:00 UTC")
 
     stub_solr_update 'http://localhost:8983/solr/collection1/update?commit=true&wt=ruby'
 
@@ -138,7 +140,7 @@ class SolrOutputTest < Test::Unit::TestCase
 
     d = create_driver
 
-    time = Time.parse("2016-01-01 09:00:00 UTC").to_i
+    time = event_time("2016-01-01 09:00:00 UTC")
 
     stub_solr_update 'http://localhost:8983/solr/collection1/update?commit=true&wt=ruby'
 

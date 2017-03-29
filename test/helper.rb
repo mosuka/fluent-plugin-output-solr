@@ -23,6 +23,7 @@ $LOAD_PATH.unshift(File.dirname(__FILE__))
 
 require 'fluent/test'
 require 'fluent/test/driver/output'
+require 'fluent/test/helpers'
 
 unless ENV.has_key?('VERBOSE')
   nulllogger = Object.new
