@@ -9,7 +9,7 @@ Gem::Specification.new do |spec|
   spec.email         = ["minoru.osuka@gmail.com"]
 
   spec.summary       = "Fluent output plugin for sending data to Apache Solr."
-  spec.description   = "Fluent output plugin for sending data to Apache Solr. It support SolrCloud not only Standalone Solr."
+  spec.description   = "Fluent output plugin for sending data to Apache Solr. It supports standalone Solr and SolrCloud."
   spec.homepage      = "https://github.com/mosuka/fluent-plugin-output-solr"
 
   spec.license       = "Apache-2.0"
