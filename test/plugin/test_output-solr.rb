@@ -104,6 +104,27 @@ class SolrOutputTest < Test::Unit::TestCase
     assert_equal [time, sample_record].to_msgpack, d.formatted[0], d.formatted[0]
   end
 
+  def test_invalid_chunk_keys
+    assert_raise_message(/'tag' in chunk_keys is required./) do
+      create_driver(Fluent::Config::Element.new(
+                      'ROOT', '', {
+                        '@type'                   => 'solr',
+                        'url'                     => 'http://localhost:8983/solr/collection1',
+                        'defined_fields'          => '["id", "title"]',
+                        'ignore_undefined_fields' => true,
+                        'unique_key_field'        => 'id',
+                        'tag_field'               => 'tag',
+                        'timestamp_field'         => 'event_timestamp',
+                        'flush_size'              => 100,
+                        'commit_with_flush'       => true
+                      }, [
+                        Fluent::Config::Element.new('buffer', 'mykey', {
+                                                      'chunk_keys' => 'mykey'
+                                                    }, [])
+                      ]))
+    end
+  end
+
   def test_format_solrcloud
     start_zookeeper
 
