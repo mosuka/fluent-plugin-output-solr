@@ -62,6 +62,7 @@ module Fluent::Plugin
     def configure(conf)
       compat_parameters_convert(conf, :inject)
       super
+      raise Fluent::ConfigError, "'tag' in chunk_keys is required." if not @chunk_key_tag
     end
 
     def start
