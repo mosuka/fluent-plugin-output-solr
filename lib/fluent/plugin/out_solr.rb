@@ -9,6 +9,7 @@ module Fluent
 
     DEFAULT_COLLECTION = 'collection1'
     DEFAULT_IGNORE_UNDEFINED_FIELDS = false
+    DEFAULT_STRING_FIELD_VALUE_MAX_LENGTH = -1
     DEFAULT_TAG_FIELD = 'tag'
     DEFAULT_TIMESTAMP_FIELD = 'event_timestamp'
     DEFAULT_FLUSH_SIZE = 100
@@ -34,7 +35,9 @@ module Fluent
     config_param :defined_fields, :array, :default => nil,
                  :desc => 'The defined fields in the Solr schema.xml. If omitted, it will get fields via Solr Schema API.'                 
     config_param :ignore_undefined_fields, :bool, :default => DEFAULT_IGNORE_UNDEFINED_FIELDS,
-                 :desc => 'Ignore undefined fields in the Solr schema.xml.'                 
+                 :desc => 'Ignore undefined fields in the Solr schema.xml.'
+    config_param :string_field_value_max_length, :integer, :default => DEFAULT_STRING_FIELD_VALUE_MAX_LENGTH,
+                 :desc => 'Field value max length.'
 
     config_param :unique_key_field, :string, :default => nil,
                  :desc => 'A field name of unique key in the Solr schema.xml. If omitted, it will get unique key via Solr Schema API.'
@@ -125,6 +128,30 @@ module Fluent
           end
         end
 
+        if @string_field_value_max_length >= 0 then
+          record.each_key do |key|
+            if record[key].instance_of?(Array) then
+              values = []
+              record[key].each do |value|
+                if value.instance_of?(String) then
+                  if value.length > @string_field_value_max_length then
+                    log.warn "#{key} is too long (#{value.length}, max is #{@string_field_value_max_length})."
+                    values.push(value.slice(0, @string_field_value_max_length))
+                  else
+                    values.push(value)
+                  end
+                end
+              end
+              record[key] = values
+            elsif record[key].instance_of?(String) then
+              if record[key].length > @string_field_value_max_length then
+                log.warn "#{key} is too long (#{record[key].length}, max is #{@string_field_value_max_length})."
+                record[key] = record[key].slice(0, @string_field_value_max_length)
+              end
+            end
+          end
+        end
+
         documents << record
 
         if documents.count >= @flush_size
@@ -139,13 +166,13 @@ module Fluent
     def update(documents)
       if @mode == MODE_STANDALONE then
         @solr.add documents, :params => {:commit => @commit_with_flush}
-        log.debug "Added %d document(s) to Solr" % documents.count
+        log.debug "Added #{documents.count} document(s) to Solr"
       elsif @mode == MODE_SOLRCLOUD then
         @solr.add documents, collection: @collection, :params => {:commit => @commit_with_flush}
-        log.debug "Update: Added %d document(s) to Solr" % documents.count
+        log.debug "Added #{documents.count} document(s) to Solr"
       end
       rescue Exception => e
-        log.warn "Update: An error occurred while indexing: #{e.message}"
+        log.warn "An error occurred while indexing: #{e.message}"
     end
 
     def get_unique_key
@@ -163,7 +190,7 @@ module Fluent
       return unique_key
 
       rescue Exception => e
-        log.warn "Unique key: #{e.message}"
+        log.warn "An error occurred: #{e.message}"
     end
 
     def get_fields
@@ -184,7 +211,7 @@ module Fluent
       return fields
 
       rescue Exception => e
-        log.warn "Fields: #{e.message}"
+        log.warn "An error occurred: #{e.message}"
     end
   end
 end

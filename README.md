@@ -80,6 +80,14 @@ A field name of unique key in the Solr schema.xml. If omitted, it will get uniqu
 unique_key_field id
 ```
 
+### string_field_value_max_length
+
+A string field value max length. If set -1, it means unlimited (default -1). However, there is a limit of Solr.
+
+```
+string_field_value_max_length -1
+```
+
 ### timestamp_field
 
 A field name of event timestamp in the Solr schema.xml (default event_timestamp).

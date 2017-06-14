@@ -29,12 +29,32 @@ class SolrOutputTest < Test::Unit::TestCase
     commit_with_flush       true
   ]
 
+  CONFIG_STRING_FIELD_MAX_LENGTH = %[
+    url                     http://localhost:8983/solr/collection1
+    defined_fields          ["id", "title"]
+    ignore_undefined_fields true
+    string_field_value_max_length 5
+    unique_key_field        id
+    tag_field               tag
+    timestamp_field         event_timestamp
+    flush_size              100
+    commit_with_flush       true
+  ]
+
   def create_driver(conf = CONFIG_STANDALONE, tag='test')
     Fluent::Test::BufferedOutputTestDriver.new(Fluent::SolrOutput, tag).configure(conf)
   end
 
   def sample_record
     {'id' => 'change.me', 'title' => 'change.me'}
+  end
+
+  def sample_multivalued_record
+    {'id' => 'change.me', 'title' => ['change.me 1', 'change.me 2']}
+  end
+
+  def sample_string_field_value_max_length
+    {'id' => 'change.me', 'title' => ['change.me 1', 'change.me 2']}
   end
 
   def stub_solr_update(url = 'http://localhost:8983/solr/collection1/update?commit=true&wt=ruby')
@@ -150,6 +170,38 @@ class SolrOutputTest < Test::Unit::TestCase
     assert_equal('<?xml version="1.0" encoding="UTF-8"?><add><doc><field name="id">change.me</field><field name="title">change.me</field></doc></add>', @index_cmds)
 
     stop_zookeeper  
+  end
+
+  def test_write_multivalued
+    time = Time.parse("2016-01-01 09:00:00 UTC").to_i
+
+    stub_solr_update 'http://localhost:8983/solr/collection1/update?commit=true&wt=ruby'
+
+    d = create_driver CONFIG_STANDALONE
+
+    #d.instance.unique_key_field = 'id'
+    #d.instance.defined_fields = ['id', 'title']
+
+    d.emit(sample_multivalued_record, time)
+    d.run
+
+    assert_equal('<?xml version="1.0" encoding="UTF-8"?><add><doc><field name="id">change.me</field><field name="title">change.me 1</field><field name="title">change.me 2</field></doc></add>', @index_cmds)
+  end
+
+  def test_write_string_field_max_length
+    time = Time.parse("2016-01-01 09:00:00 UTC").to_i
+
+    stub_solr_update 'http://localhost:8983/solr/collection1/update?commit=true&wt=ruby'
+
+    d = create_driver CONFIG_STRING_FIELD_MAX_LENGTH
+
+    #d.instance.unique_key_field = 'id'
+    #d.instance.defined_fields = ['id', 'title']
+
+    d.emit(sample_string_field_value_max_length, time)
+    d.run
+
+    assert_equal('<?xml version="1.0" encoding="UTF-8"?><add><doc><field name="id">chang</field><field name="title">chang</field><field name="title">chang</field></doc></add>', @index_cmds)
   end
 
   def start_zookeeper
