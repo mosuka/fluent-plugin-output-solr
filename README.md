@@ -72,6 +72,14 @@ Ignore undefined fields in the Solr schema.xml.
 ignore_undefined_fields false
 ```
 
+### string_field_value_max_length
+
+A string field value max length. If set -1, it means unlimited (default -1). However, there is a limit of Solr.
+
+```
+string_field_value_max_length -1
+```
+
 ### unique_key_field
 
 A field name of unique key in the Solr schema.xml. If omitted, it will get unique key via Solr Schema API.
@@ -82,10 +90,10 @@ unique_key_field id
 
 ### timestamp_field
 
-A field name of event timestamp in the Solr schema.xml (default event_timestamp).
+A field name of event timestamp in the Solr schema.xml (default time).
 
 ```
-timestamp_field event_timestamp
+timestamp_field time
 ```
 
 ### flush_size
