@@ -172,7 +172,7 @@ module Fluent
         log.debug "Added #{documents.count} document(s) to Solr"
       end
       rescue Exception => e
-        log.warn "An error occurred while indexing: #{e.message}".slice(0, 1024)
+        log.warn "An error occurred while indexing: #{e.message}"
     end
 
     def get_unique_key
@@ -190,7 +190,7 @@ module Fluent
       return unique_key
 
       rescue Exception => e
-        log.warn "An error occurred while getting unique key: #{e.message}".slice(0, 1024)
+        log.warn "An error occurred while getting unique key: #{e.message}"
     end
 
     def get_fields
@@ -211,7 +211,7 @@ module Fluent
       return fields
 
       rescue Exception => e
-        log.warn "An error occurred while getting fields: #{e.message}".slice(0, 1024)
+        log.warn "An error occurred while getting fields: #{e.message}"
     end
   end
 end
