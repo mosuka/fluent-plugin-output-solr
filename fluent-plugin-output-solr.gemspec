@@ -4,7 +4,7 @@ $LOAD_PATH.unshift(lib) unless $LOAD_PATH.include?(lib)
 
 Gem::Specification.new do |spec|
   spec.name          = "fluent-plugin-output-solr"
-  spec.version       = "0.4.8"
+  spec.version       = "0.4.9"
   spec.authors       = ["Minoru Osuka"]
   spec.email         = ["minoru.osuka@gmail.com"]
 
