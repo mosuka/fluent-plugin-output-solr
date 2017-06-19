@@ -6,39 +6,103 @@ class SolrOutputTest < Test::Unit::TestCase
     @zk_server = nil
   end
 
+  CONFIG_CONFIGURE = %[
+    url                           http://localhost:8983/solr/collection1
+    zk_host                       localhost:3292/solr
+    collection                    collection1
+    defined_fields                ["id", "title"]
+    ignore_undefined_fields       true
+    string_field_value_max_length -1
+    unique_key_field              id
+    tag_field                     tag
+    time_field                    time
+    time_format                   %Y-%m-%dT%H:%M:%S %Z
+    time_output_format            %FT%TZ
+    flush_size                    100
+    commit_with_flush             true
+  ]
+
   CONFIG_STANDALONE = %[
-    url                     http://localhost:8983/solr/collection1
-    defined_fields          ["id", "title"]
-    ignore_undefined_fields true
-    unique_key_field        id
-    tag_field               tag
-    timestamp_field         event_timestamp
-    flush_size              100
-    commit_with_flush       true
+    url                           http://localhost:8983/solr/collection1
+    defined_fields                ["id", "title"]
+    ignore_undefined_fields       true
+    string_field_value_max_length -1
+    unique_key_field              id
+    tag_field                     tag
+    time_field                    time
+    time_format                   %Y-%m-%dT%H:%M:%S %Z
+    time_output_format            %FT%TZ
+    flush_size                    100
+    commit_with_flush             true
   ]
 
   CONFIG_SOLRCLOUD = %[
-    zk_host                 localhost:3292/solr
-    collection              collection1
-    defined_fields          ["id", "title"]
-    ignore_undefined_fields true
-    unique_key_field        id
-    tag_field               tag
-    timestamp_field         event_timestamp
-    flush_size              100
-    commit_with_flush       true
+    zk_host                       localhost:3292/solr
+    collection                    collection1
+    defined_fields                ["id", "title"]
+    ignore_undefined_fields       true
+    string_field_value_max_length -1
+    unique_key_field              id
+    tag_field                     tag
+    time_field                    time
+    time_format                   %Y-%m-%dT%H:%M:%S %Z
+    time_output_format            %FT%TZ
+    flush_size                    100
+    commit_with_flush             true
+  ]
+
+  CONFIG_SCHEMALESS = %[
+    url                           http://localhost:8983/solr/collection1
+    ignore_undefined_fields       false
+    string_field_value_max_length -1
+    unique_key_field              id
+    tag_field                     tag
+    time_field                    time
+    time_format                   %Y-%m-%dT%H:%M:%S %Z
+    time_output_format            %FT%TZ
+    flush_size                    100
+    commit_with_flush             true
+  ]
+
+  CONFIG_DEFINE_SCHEMA = %[
+    url                           http://localhost:8983/solr/collection1
+    defined_fields                ["id", "title"]
+    ignore_undefined_fields       true
+    string_field_value_max_length -1
+    unique_key_field              id
+    tag_field                     tag
+    time_field                    time
+    time_format                   %Y-%m-%dT%H:%M:%S %Z
+    time_output_format            %FT%TZ
+    flush_size                    100
+    commit_with_flush             true
   ]
 
   CONFIG_STRING_FIELD_MAX_LENGTH = %[
-    url                     http://localhost:8983/solr/collection1
-    defined_fields          ["id", "title"]
-    ignore_undefined_fields true
+    url                           http://localhost:8983/solr/collection1
+    defined_fields                ["id", "title"]
+    ignore_undefined_fields       true
     string_field_value_max_length 5
-    unique_key_field        id
-    tag_field               tag
-    timestamp_field         event_timestamp
-    flush_size              100
-    commit_with_flush       true
+    unique_key_field              id
+    tag_field                     tag
+    time_field                    time
+    time_format                   %Y-%m-%dT%H:%M:%S %Z
+    time_output_format            %FT%TZ
+    flush_size                    100
+    commit_with_flush             true
+  ]
+
+  CONFIG_TIME_FORMAT = %[
+    url                           http://localhost:8983/solr/collection1
+    ignore_undefined_fields       false
+    string_field_value_max_length -1
+    unique_key_field              id
+    tag_field                     tag
+    time_field                    time
+    time_format                   %Y-%m-%d %H:%M:%S.%L %Z
+    time_output_format            %FT%TZ
+    flush_size                    100
+    commit_with_flush             true
   ]
 
   def create_driver(conf = CONFIG_STANDALONE, tag='test')
@@ -53,8 +117,12 @@ class SolrOutputTest < Test::Unit::TestCase
     {'id' => 'change.me', 'title' => ['change.me 1', 'change.me 2']}
   end
 
-  def sample_string_field_value_max_length
-    {'id' => 'change.me', 'title' => ['change.me 1', 'change.me 2']}
+  def sample_reserved_data
+    {'id' => 'change.me', 'title' => 'change.me', '_version_' => 123456}
+  end
+
+  def sample_time
+    {'id' => 'change.me', 'title' => 'change.me', 'time' => '2016-01-01 09:00:00 UTC'}
   end
 
   def stub_solr_update(url = 'http://localhost:8983/solr/collection1/update?commit=true&wt=ruby')
@@ -85,27 +153,19 @@ class SolrOutputTest < Test::Unit::TestCase
     zk.create(path)
   end
 
-  def test_configure_standalone
-    d = create_driver CONFIG_STANDALONE
+  def test_configure
+    d = create_driver CONFIG_CONFIGURE
     assert_equal 'http://localhost:8983/solr/collection1', d.instance.url
-    assert_equal ['id', 'title'], d.instance.defined_fields
-    assert_equal true, d.instance.ignore_undefined_fields
-    assert_equal 'id', d.instance.unique_key_field
-    assert_equal 'tag', d.instance.tag_field
-    assert_equal 'event_timestamp', d.instance.timestamp_field
-    assert_equal 100, d.instance.flush_size
-    assert_equal true, d.instance.commit_with_flush
-  end
-
-  def test_configure_solrcloud
-    d = create_driver CONFIG_SOLRCLOUD
     assert_equal 'localhost:3292/solr', d.instance.zk_host
     assert_equal 'collection1', d.instance.collection
     assert_equal ['id', 'title'], d.instance.defined_fields
     assert_equal true, d.instance.ignore_undefined_fields
+    assert_equal -1, d.instance.string_field_value_max_length
     assert_equal 'id', d.instance.unique_key_field
     assert_equal 'tag', d.instance.tag_field
-    assert_equal 'event_timestamp', d.instance.timestamp_field
+    assert_equal 'time', d.instance.time_field
+    assert_equal '%Y-%m-%dT%H:%M:%S %Z', d.instance.time_format
+    assert_equal '%FT%TZ', d.instance.time_output_format
     assert_equal 100, d.instance.flush_size
     assert_equal true, d.instance.commit_with_flush
   end
@@ -143,9 +203,6 @@ class SolrOutputTest < Test::Unit::TestCase
 
     d = create_driver CONFIG_STANDALONE
 
-    #d.instance.unique_key_field = 'id'
-    #d.instance.defined_fields = ['id', 'title']
-
     d.emit(sample_record, time)
     d.run
 
@@ -160,9 +217,6 @@ class SolrOutputTest < Test::Unit::TestCase
     stub_solr_update 'http://localhost:8983/solr/collection1/update?commit=true&wt=ruby'
 
     d = create_driver CONFIG_SOLRCLOUD
-
-    #d.instance.unique_key_field = 'id'
-    #d.instance.defined_fields = ['id', 'title']
 
     d.emit(sample_record, time)
     d.run
@@ -179,13 +233,23 @@ class SolrOutputTest < Test::Unit::TestCase
 
     d = create_driver CONFIG_STANDALONE
 
-    #d.instance.unique_key_field = 'id'
-    #d.instance.defined_fields = ['id', 'title']
-
     d.emit(sample_multivalued_record, time)
     d.run
 
     assert_equal('<?xml version="1.0" encoding="UTF-8"?><add><doc><field name="id">change.me</field><field name="title">change.me 1</field><field name="title">change.me 2</field></doc></add>', @index_cmds)
+  end
+
+  def test_schemaless
+    time = Time.parse("2016-01-01 09:00:00 UTC").to_i
+
+    stub_solr_update 'http://localhost:8983/solr/collection1/update?commit=true&wt=ruby'
+
+    d = create_driver CONFIG_SCHEMALESS
+
+    d.emit(sample_record, time)
+    d.run
+
+    assert_equal('<?xml version="1.0" encoding="UTF-8"?><add><doc><field name="id">change.me</field><field name="title">change.me</field><field name="tag">test</field><field name="time">2016-01-01T09:00:00Z</field></doc></add>', @index_cmds)
   end
 
   def test_write_string_field_max_length
@@ -195,13 +259,36 @@ class SolrOutputTest < Test::Unit::TestCase
 
     d = create_driver CONFIG_STRING_FIELD_MAX_LENGTH
 
-    #d.instance.unique_key_field = 'id'
-    #d.instance.defined_fields = ['id', 'title']
-
-    d.emit(sample_string_field_value_max_length, time)
+    d.emit(sample_record, time)
     d.run
 
-    assert_equal('<?xml version="1.0" encoding="UTF-8"?><add><doc><field name="id">chang</field><field name="title">chang</field><field name="title">chang</field></doc></add>', @index_cmds)
+    assert_equal('<?xml version="1.0" encoding="UTF-8"?><add><doc><field name="id">chang</field><field name="title">chang</field></doc></add>', @index_cmds)
+  end
+
+  def test_reserved_data
+    time = Time.parse("2016-01-01 09:00:00 UTC").to_i
+
+    stub_solr_update 'http://localhost:8983/solr/collection1/update?commit=true&wt=ruby'
+
+    d = create_driver CONFIG_SCHEMALESS
+
+    d.emit(sample_reserved_data, time)
+    d.run
+
+    assert_equal('<?xml version="1.0" encoding="UTF-8"?><add><doc><field name="id">change.me</field><field name="title">change.me</field><field name="tag">test</field><field name="time">2016-01-01T09:00:00Z</field></doc></add>', @index_cmds)
+  end
+
+  def test_time_format
+    time = Time.parse("2016-01-01 09:00:00 UTC").to_i
+
+    stub_solr_update 'http://localhost:8983/solr/collection1/update?commit=true&wt=ruby'
+
+    d = create_driver CONFIG_TIME_FORMAT
+
+    d.emit(sample_time, time)
+    d.run
+
+    assert_equal('<?xml version="1.0" encoding="UTF-8"?><add><doc><field name="id">change.me</field><field name="title">change.me</field><field name="time">2016-01-01T09:00:00Z</field><field name="tag">test</field></doc></add>', @index_cmds)
   end
 
   def start_zookeeper

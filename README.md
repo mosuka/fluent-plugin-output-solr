@@ -88,12 +88,28 @@ A string field value max length. If set -1, it means unlimited (default -1). How
 string_field_value_max_length -1
 ```
 
-### timestamp_field
+### time_field
 
-A field name of event timestamp in the Solr schema.xml (default event_timestamp).
+A field name of event timestamp in the Solr schema.xml (default time).
 
 ```
-timestamp_field event_timestamp
+time_field time
+```
+
+### time_format
+
+The format of the time field (default %FT%TZ).
+
+```
+time_format %FT%TZ
+```
+
+### time_output_format
+
+The format of the time field of Solr. (default %FT%TZ).
+
+```
+time_output_format %FT%TZ
 ```
 
 ### flush_size

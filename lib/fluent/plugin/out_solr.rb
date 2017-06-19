@@ -11,7 +11,9 @@ module Fluent
     DEFAULT_IGNORE_UNDEFINED_FIELDS = false
     DEFAULT_STRING_FIELD_VALUE_MAX_LENGTH = -1
     DEFAULT_TAG_FIELD = 'tag'
-    DEFAULT_TIMESTAMP_FIELD = 'event_timestamp'
+    DEFAULT_TIME_FIELD = 'time'
+    DEFAULT_TIME_FORMAT = '%FT%TZ'
+    DEFAULT_TIME_OUTPUT_FORMAT = '%FT%TZ'
     DEFAULT_FLUSH_SIZE = 100
     DEFAULT_COMMIT_WITH_FLUSH = true
 
@@ -42,9 +44,13 @@ module Fluent
     config_param :unique_key_field, :string, :default => nil,
                  :desc => 'A field name of unique key in the Solr schema.xml. If omitted, it will get unique key via Solr Schema API.'
     config_param :tag_field, :string, :default => DEFAULT_TAG_FIELD,
-                 :desc => 'A field name of fluentd tag in the Solr schema.xml (default event_timestamp).'
-    config_param :timestamp_field, :string, :default => DEFAULT_TIMESTAMP_FIELD,
-                 :desc => 'A field name of event timestamp in the Solr schema.xml (default event_timestamp).'
+                 :desc => 'A field name of fluentd tag in the Solr schema.xml (default tag).'
+    config_param :time_field, :string, :default => DEFAULT_TIME_FIELD,
+                 :desc => 'A field name of event timestamp in the Solr schema.xml (default time).'
+    config_param :time_format, :string, :default => DEFAULT_TIME_FORMAT,
+                 :desc => 'The format of the time field (default %d/%b/%Y:%H:%M:%S %z).'
+    config_param :time_output_format, :string, :default => DEFAULT_TIME_OUTPUT_FORMAT,
+                 :desc => 'The format of the time field of Solr. (default %FT%TZ).'
 
     config_param :flush_size, :integer, :default => DEFAULT_FLUSH_SIZE,
                  :desc => 'A number of events to queue up before writing to Solr (default 100).'
@@ -109,15 +115,15 @@ module Fluent
           record.merge!({@tag_field => tag})
         end
 
-        if record.has_key?(@timestamp_field) then
+        if record.has_key?(@time_field) then
           begin
-            event_timestamp_dt = DateTime.strptime(record[@timestamp_field], "%d/%b/%Y:%H:%M:%S %z").to_s
-            record.merge!({@timestamp_field => Time.parse(event_timestamp_dt.to_s).utc.strftime('%FT%TZ')})
+            event_timestamp_dt = Time.strptime(record[@time_field], @time_format).to_s
+            record.merge!({@time_field => Time.parse(event_timestamp_dt.to_s).utc.strftime(@time_output_format)})
           rescue
-            record.merge!({@timestamp_field => Time.at(time).utc.strftime('%FT%TZ')})
+            record.merge!({@time_field => Time.at(time).utc.strftime(@time_output_format)})
           end
         else
-          record.merge!({@timestamp_field => Time.at(time).utc.strftime('%FT%TZ')})
+          record.merge!({@time_field => Time.at(time).utc.strftime(@time_output_format)})
         end
 
         if @ignore_undefined_fields then
@@ -149,6 +155,16 @@ module Fluent
                 record[key] = record[key].slice(0, @string_field_value_max_length)
               end
             end
+          end
+        end
+
+        #
+        # delete reserved fields
+        # https://cwiki.apache.org/confluence/display/solr/Defining+Fields
+        #
+        record.each_key do |key|
+          if key[0] == '_' and key[-1] == '_' then
+            record.delete(key)
           end
         end
 
