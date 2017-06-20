@@ -104,12 +104,12 @@ The format of the time field (default %FT%TZ).
 time_format %FT%TZ
 ```
 
-### time_output_format
+### millisecond
 
-The format of the time field of Solr. (default %FT%TZ).
+Output millisecond to Solr (default false).
 
 ```
-time_output_format %FT%TZ
+millisecond false
 ```
 
 ### flush_size

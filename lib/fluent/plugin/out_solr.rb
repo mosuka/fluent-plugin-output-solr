@@ -13,7 +13,7 @@ module Fluent
     DEFAULT_TAG_FIELD = 'tag'
     DEFAULT_TIME_FIELD = 'time'
     DEFAULT_TIME_FORMAT = '%FT%TZ'
-    DEFAULT_TIME_OUTPUT_FORMAT = '%FT%TZ'
+    DEFAULT_MILLISECOND = false
     DEFAULT_FLUSH_SIZE = 100
     DEFAULT_COMMIT_WITH_FLUSH = true
 
@@ -49,8 +49,8 @@ module Fluent
                  :desc => 'A field name of event timestamp in the Solr schema.xml (default time).'
     config_param :time_format, :string, :default => DEFAULT_TIME_FORMAT,
                  :desc => 'The format of the time field (default %d/%b/%Y:%H:%M:%S %z).'
-    config_param :time_output_format, :string, :default => DEFAULT_TIME_OUTPUT_FORMAT,
-                 :desc => 'The format of the time field of Solr. (default %FT%TZ).'
+    config_param :millisecond, :bool, :default => DEFAULT_MILLISECOND,
+                 :desc => 'Output millisecond to Solr (default false).'
 
     config_param :flush_size, :integer, :default => DEFAULT_FLUSH_SIZE,
                  :desc => 'A number of events to queue up before writing to Solr (default 100).'
@@ -117,13 +117,27 @@ module Fluent
 
         if record.has_key?(@time_field) then
           begin
-            event_timestamp_dt = Time.strptime(record[@time_field], @time_format).to_s
-            record.merge!({@time_field => Time.parse(event_timestamp_dt.to_s).utc.strftime(@time_output_format)})
+            tmp_time = Time.strptime(record[@time_field], @time_format)
+            if @millisecond then
+              record.merge!({@time_field => '%s.%03dZ' % [tmp_time.utc.strftime('%FT%T'), tmp_time.usec/ 1000.0]})
+            else
+              record.merge!({@time_field => tmp_time.utc.strftime('%FT%TZ')})
+            end
           rescue
-            record.merge!({@time_field => Time.at(time).utc.strftime(@time_output_format)})
+            tmp_time = Time.at(time).utc
+            if @millisecond then
+              record.merge!({@time_field => '%s.%03dZ' % [tmp_time.utc.strftime('%FT%T'), tmp_time.usec/ 1000.0]})
+            else
+              record.merge!({@time_field => tmp_time.utc.strftime('%FT%TZ')})
+            end
           end
         else
-          record.merge!({@time_field => Time.at(time).utc.strftime(@time_output_format)})
+          tmp_time = Time.at(time).utc
+          if @millisecond then
+            record.merge!({@time_field => '%s.%03dZ' % [tmp_time.utc.strftime('%FT%T'), tmp_time.usec/ 1000.0]})
+          else
+            record.merge!({@time_field => tmp_time.utc.strftime('%FT%TZ')})
+          end
         end
 
         if @ignore_undefined_fields then

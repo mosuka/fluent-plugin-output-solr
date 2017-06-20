@@ -17,7 +17,7 @@ class SolrOutputTest < Test::Unit::TestCase
     tag_field                     tag
     time_field                    time
     time_format                   %Y-%m-%dT%H:%M:%S %Z
-    time_output_format            %FT%TZ
+    millisecond                   false
     flush_size                    100
     commit_with_flush             true
   ]
@@ -31,7 +31,7 @@ class SolrOutputTest < Test::Unit::TestCase
     tag_field                     tag
     time_field                    time
     time_format                   %Y-%m-%dT%H:%M:%S %Z
-    time_output_format            %FT%TZ
+    millisecond                   false
     flush_size                    100
     commit_with_flush             true
   ]
@@ -46,7 +46,7 @@ class SolrOutputTest < Test::Unit::TestCase
     tag_field                     tag
     time_field                    time
     time_format                   %Y-%m-%dT%H:%M:%S %Z
-    time_output_format            %FT%TZ
+    millisecond                   false
     flush_size                    100
     commit_with_flush             true
   ]
@@ -60,7 +60,7 @@ class SolrOutputTest < Test::Unit::TestCase
     time_field                    time
     time_format                   %Y-%m-%dT%H:%M:%S %Z
     time_output_format            %FT%TZ
-    flush_size                    100
+    millisecond                   false
     commit_with_flush             true
   ]
 
@@ -73,7 +73,7 @@ class SolrOutputTest < Test::Unit::TestCase
     tag_field                     tag
     time_field                    time
     time_format                   %Y-%m-%dT%H:%M:%S %Z
-    time_output_format            %FT%TZ
+    millisecond                   false
     flush_size                    100
     commit_with_flush             true
   ]
@@ -87,7 +87,7 @@ class SolrOutputTest < Test::Unit::TestCase
     tag_field                     tag
     time_field                    time
     time_format                   %Y-%m-%dT%H:%M:%S %Z
-    time_output_format            %FT%TZ
+    millisecond                   false
     flush_size                    100
     commit_with_flush             true
   ]
@@ -100,7 +100,7 @@ class SolrOutputTest < Test::Unit::TestCase
     tag_field                     tag
     time_field                    time
     time_format                   %Y-%m-%d %H:%M:%S.%L %Z
-    time_output_format            %FT%TZ
+    millisecond                   true
     flush_size                    100
     commit_with_flush             true
   ]
@@ -122,7 +122,7 @@ class SolrOutputTest < Test::Unit::TestCase
   end
 
   def sample_time
-    {'id' => 'change.me', 'title' => 'change.me', 'time' => '2016-01-01 09:00:00 UTC'}
+    {'id' => 'change.me', 'title' => 'change.me', 'time' => '2016-01-01 09:00:00.123 UTC'}
   end
 
   def stub_solr_update(url = 'http://localhost:8983/solr/collection1/update?commit=true&wt=ruby')
@@ -165,7 +165,7 @@ class SolrOutputTest < Test::Unit::TestCase
     assert_equal 'tag', d.instance.tag_field
     assert_equal 'time', d.instance.time_field
     assert_equal '%Y-%m-%dT%H:%M:%S %Z', d.instance.time_format
-    assert_equal '%FT%TZ', d.instance.time_output_format
+    assert_equal false, d.instance.millisecond
     assert_equal 100, d.instance.flush_size
     assert_equal true, d.instance.commit_with_flush
   end
@@ -288,7 +288,20 @@ class SolrOutputTest < Test::Unit::TestCase
     d.emit(sample_time, time)
     d.run
 
-    assert_equal('<?xml version="1.0" encoding="UTF-8"?><add><doc><field name="id">change.me</field><field name="title">change.me</field><field name="time">2016-01-01T09:00:00Z</field><field name="tag">test</field></doc></add>', @index_cmds)
+    assert_equal('<?xml version="1.0" encoding="UTF-8"?><add><doc><field name="id">change.me</field><field name="title">change.me</field><field name="time">2016-01-01T09:00:00.123Z</field><field name="tag">test</field></doc></add>', @index_cmds)
+  end
+
+  def test_time_format_without_time_field
+    time = Time.parse("2016-01-01 09:00:00 UTC").to_i
+
+    stub_solr_update 'http://localhost:8983/solr/collection1/update?commit=true&wt=ruby'
+
+    d = create_driver CONFIG_TIME_FORMAT
+
+    d.emit(sample_record, time)
+    d.run
+
+    assert_equal('<?xml version="1.0" encoding="UTF-8"?><add><doc><field name="id">change.me</field><field name="title">change.me</field><field name="tag">test</field><field name="time">2016-01-01T09:00:00.000Z</field></doc></add>', @index_cmds)
   end
 
   def start_zookeeper
