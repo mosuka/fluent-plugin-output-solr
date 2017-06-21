@@ -117,26 +117,26 @@ module Fluent
 
         if record.has_key?(@time_field) then
           begin
-            tmp_time = Time.strptime(record[@time_field], @time_format)
+            tmp_time = Time.strptime(record[@time_field], @time_format).utc
             if @millisecond then
-              record.merge!({@time_field => '%s.%03dZ' % [tmp_time.utc.strftime('%FT%T'), tmp_time.usec/ 1000.0]})
+              record.merge!({@time_field => '%s.%03dZ' % [tmp_time.strftime('%FT%T'), tmp_time.usec / 1000.0]})
             else
-              record.merge!({@time_field => tmp_time.utc.strftime('%FT%TZ')})
+              record.merge!({@time_field => tmp_time.strftime('%FT%TZ')})
             end
           rescue
             tmp_time = Time.at(time).utc
             if @millisecond then
-              record.merge!({@time_field => '%s.%03dZ' % [tmp_time.utc.strftime('%FT%T'), tmp_time.usec/ 1000.0]})
+              record.merge!({@time_field => '%s.%03dZ' % [tmp_time.strftime('%FT%T'), tmp_time.usec / 1000.0]})
             else
-              record.merge!({@time_field => tmp_time.utc.strftime('%FT%TZ')})
+              record.merge!({@time_field => tmp_time.strftime('%FT%TZ')})
             end
           end
         else
           tmp_time = Time.at(time).utc
           if @millisecond then
-            record.merge!({@time_field => '%s.%03dZ' % [tmp_time.utc.strftime('%FT%T'), tmp_time.usec/ 1000.0]})
+            record.merge!({@time_field => '%s.%03dZ' % [tmp_time.strftime('%FT%T'), tmp_time.usec / 1000.0]})
           else
-            record.merge!({@time_field => tmp_time.utc.strftime('%FT%TZ')})
+            record.merge!({@time_field => tmp_time.strftime('%FT%TZ')})
           end
         end
 
