@@ -6,112 +6,62 @@ class SolrOutputTest < Test::Unit::TestCase
     @zk_server = nil
   end
 
-  CONFIG_CONFIGURE = %[
-    url                           http://localhost:8983/solr/collection1
+  CONFIG_CONFIGURE = '
+    base_url                      http://localhost:8983/solr
     zk_host                       localhost:3292/solr
     collection                    collection1
-    defined_fields                ["id", "title"]
-    ignore_undefined_fields       true
-    string_field_value_max_length -1
-    unique_key_field              id
+    ignore_undefined_fields       false
     tag_field                     tag
     time_field                    time
     time_format                   %Y-%m-%dT%H:%M:%S %Z
     millisecond                   false
     flush_size                    100
     commit_with_flush             true
-  ]
+  '
 
-  CONFIG_STANDALONE = %[
-    url                           http://localhost:8983/solr/collection1
-    defined_fields                ["id", "title"]
-    ignore_undefined_fields       true
-    string_field_value_max_length -1
-    unique_key_field              id
+  CONFIG_STANDALONE = '
+    base_url                      http://localhost:8983/solr
+    collection                    collection1
+    ignore_undefined_fields       false
     tag_field                     tag
     time_field                    time
     time_format                   %Y-%m-%dT%H:%M:%S %Z
     millisecond                   false
     flush_size                    100
     commit_with_flush             true
-  ]
+  '
 
-  CONFIG_SOLRCLOUD = %[
+  CONFIG_SOLRCLOUD = '
     zk_host                       localhost:3292/solr
     collection                    collection1
-    defined_fields                ["id", "title"]
-    ignore_undefined_fields       true
-    string_field_value_max_length -1
-    unique_key_field              id
-    tag_field                     tag
-    time_field                    time
-    time_format                   %Y-%m-%dT%H:%M:%S %Z
-    millisecond                   false
-    flush_size                    100
-    commit_with_flush             true
-  ]
-
-  CONFIG_SCHEMALESS = %[
-    url                           http://localhost:8983/solr/collection1
     ignore_undefined_fields       false
-    string_field_value_max_length -1
-    unique_key_field              id
-    tag_field                     tag
-    time_field                    time
-    time_format                   %Y-%m-%dT%H:%M:%S %Z
-    time_output_format            %FT%TZ
-    millisecond                   false
-    commit_with_flush             true
-  ]
-
-  CONFIG_DEFINE_SCHEMA = %[
-    url                           http://localhost:8983/solr/collection1
-    defined_fields                ["id", "title"]
-    ignore_undefined_fields       true
-    string_field_value_max_length -1
-    unique_key_field              id
     tag_field                     tag
     time_field                    time
     time_format                   %Y-%m-%dT%H:%M:%S %Z
     millisecond                   false
     flush_size                    100
     commit_with_flush             true
-  ]
+  '
 
-  CONFIG_STRING_FIELD_MAX_LENGTH = %[
-    url                           http://localhost:8983/solr/collection1
-    defined_fields                ["id", "title"]
-    ignore_undefined_fields       true
-    string_field_value_max_length 5
-    unique_key_field              id
-    tag_field                     tag
-    time_field                    time
-    time_format                   %Y-%m-%dT%H:%M:%S %Z
-    millisecond                   false
-    flush_size                    100
-    commit_with_flush             true
-  ]
-
-  CONFIG_TIME_FORMAT = %[
-    url                           http://localhost:8983/solr/collection1
+  CONFIG_TIME_FORMAT = '
+    base_url                      http://localhost:8983/solr
+    collection                    collection1
     ignore_undefined_fields       false
-    string_field_value_max_length -1
-    unique_key_field              id
     tag_field                     tag
     time_field                    time
     time_format                   %Y-%m-%d %H:%M:%S.%L %Z
     millisecond                   true
     flush_size                    100
     commit_with_flush             true
-  ]
+  '
 
   def create_driver(conf = CONFIG_STANDALONE, tag='test')
     Fluent::Test::BufferedOutputTestDriver.new(Fluent::SolrOutput, tag).configure(conf)
   end
 
-  def sample_record
-    {'id' => 'change.me', 'title' => 'change.me'}
-  end
+  # def sample_record
+  #   {'id' => 'change.me', 'title' => 'change.me'}
+  # end
 
   def sample_multivalued_record
     {'id' => 'change.me', 'title' => ['change.me 1', 'change.me 2']}
@@ -155,13 +105,9 @@ class SolrOutputTest < Test::Unit::TestCase
 
   def test_configure
     d = create_driver CONFIG_CONFIGURE
-    assert_equal 'http://localhost:8983/solr/collection1', d.instance.url
+    assert_equal 'http://localhost:8983/solr', d.instance.base_url
     assert_equal 'localhost:3292/solr', d.instance.zk_host
     assert_equal 'collection1', d.instance.collection
-    assert_equal ['id', 'title'], d.instance.defined_fields
-    assert_equal true, d.instance.ignore_undefined_fields
-    assert_equal -1, d.instance.string_field_value_max_length
-    assert_equal 'id', d.instance.unique_key_field
     assert_equal 'tag', d.instance.tag_field
     assert_equal 'time', d.instance.time_field
     assert_equal '%Y-%m-%dT%H:%M:%S %Z', d.instance.time_format
@@ -171,137 +117,93 @@ class SolrOutputTest < Test::Unit::TestCase
   end
 
   def test_format_standalone
-    time = Time.parse("2016-01-01 09:00:00 UTC").to_i
+    time = Time.parse('2016-01-01 09:00:00 UTC').to_i
 
     stub_solr_update 'http://localhost:8983/solr/collection1/update?commit=true&wt=ruby'
 
+    sample_record = {'id' => 'change.me', 'title' => 'change.me'}
+
     d = create_driver CONFIG_STANDALONE
     d.emit(sample_record, time)
-    d.expect_format "\x93\xA4test\xCEV\x86@\x10\x82\xA2id\xA9change.me\xA5title\xA9change.me".force_encoding("ascii-8bit")
+    d.expect_format "\x93\xA4test\xCEV\x86@\x10\x82\xA2id\xA9change.me\xA5title\xA9change.me".force_encoding('ascii-8bit')
     d.run
   end
 
   def test_format_solrcloud
     start_zookeeper
 
-    time = Time.parse("2016-01-01 09:00:00 UTC").to_i
+    time = Time.parse('2016-01-01 09:00:00 UTC').to_i
 
     stub_solr_update 'http://localhost:8983/solr/collection1/update?commit=true&wt=ruby'
 
+    sample_record = {'id' => 'change.me', 'title' => 'change.me'}
+
     d = create_driver CONFIG_SOLRCLOUD
     d.emit(sample_record, time)
-    d.expect_format "\x93\xA4test\xCEV\x86@\x10\x82\xA2id\xA9change.me\xA5title\xA9change.me".force_encoding("ascii-8bit")
+    d.expect_format "\x93\xA4test\xCEV\x86@\x10\x82\xA2id\xA9change.me\xA5title\xA9change.me".force_encoding('ascii-8bit')
     d.run
 
     stop_zookeeper
   end
 
   def test_write_standalone
-    time = Time.parse("2016-01-01 09:00:00 UTC").to_i
+    time = Time.parse('2016-01-01 09:00:00 UTC').to_i
 
     stub_solr_update 'http://localhost:8983/solr/collection1/update?commit=true&wt=ruby'
 
-    d = create_driver CONFIG_STANDALONE
+    sample_record = {'id' => 'change.me', 'title' => 'change.me'}
 
+    d = create_driver CONFIG_STANDALONE
     d.emit(sample_record, time)
     d.run
 
-    assert_equal('<?xml version="1.0" encoding="UTF-8"?><add><doc><field name="id">change.me</field><field name="title">change.me</field></doc></add>', @index_cmds)
+    assert_equal('<?xml version="1.0" encoding="UTF-8"?><add><doc><field name="id">change.me</field><field name="title">change.me</field><field name="tag">test</field><field name="time">2016-01-01T09:00:00Z</field></doc></add>', @index_cmds)
   end
 
   def test_write_solrcloud
     start_zookeeper
 
-    time = Time.parse("2016-01-01 09:00:00 UTC").to_i
+    time = Time.parse('2016-01-01 09:00:00 UTC').to_i
 
     stub_solr_update 'http://localhost:8983/solr/collection1/update?commit=true&wt=ruby'
 
-    d = create_driver CONFIG_SOLRCLOUD
+    sample_record = {'id' => 'change.me', 'title' => 'change.me'}
 
+    d = create_driver CONFIG_SOLRCLOUD
     d.emit(sample_record, time)
     d.run
 
-    assert_equal('<?xml version="1.0" encoding="UTF-8"?><add><doc><field name="id">change.me</field><field name="title">change.me</field></doc></add>', @index_cmds)
+    assert_equal('<?xml version="1.0" encoding="UTF-8"?><add><doc><field name="id">change.me</field><field name="title">change.me</field><field name="tag">test</field><field name="time">2016-01-01T09:00:00Z</field></doc></add>', @index_cmds)
 
-    stop_zookeeper  
+    stop_zookeeper
   end
 
   def test_write_multivalued
-    time = Time.parse("2016-01-01 09:00:00 UTC").to_i
+    time = Time.parse('2016-01-01 09:00:00 UTC').to_i
 
     stub_solr_update 'http://localhost:8983/solr/collection1/update?commit=true&wt=ruby'
 
-    d = create_driver CONFIG_STANDALONE
+    sample_multivalued_record = {'id' => 'change.me', 'title' => ['change.me 1', 'change.me 2']}
 
+    d = create_driver CONFIG_STANDALONE
     d.emit(sample_multivalued_record, time)
     d.run
 
-    assert_equal('<?xml version="1.0" encoding="UTF-8"?><add><doc><field name="id">change.me</field><field name="title">change.me 1</field><field name="title">change.me 2</field></doc></add>', @index_cmds)
-  end
-
-  def test_schemaless
-    time = Time.parse("2016-01-01 09:00:00 UTC").to_i
-
-    stub_solr_update 'http://localhost:8983/solr/collection1/update?commit=true&wt=ruby'
-
-    d = create_driver CONFIG_SCHEMALESS
-
-    d.emit(sample_record, time)
-    d.run
-
-    assert_equal('<?xml version="1.0" encoding="UTF-8"?><add><doc><field name="id">change.me</field><field name="title">change.me</field><field name="tag">test</field><field name="time">2016-01-01T09:00:00Z</field></doc></add>', @index_cmds)
-  end
-
-  def test_write_string_field_max_length
-    time = Time.parse("2016-01-01 09:00:00 UTC").to_i
-
-    stub_solr_update 'http://localhost:8983/solr/collection1/update?commit=true&wt=ruby'
-
-    d = create_driver CONFIG_STRING_FIELD_MAX_LENGTH
-
-    d.emit(sample_record, time)
-    d.run
-
-    assert_equal('<?xml version="1.0" encoding="UTF-8"?><add><doc><field name="id">chang</field><field name="title">chang</field></doc></add>', @index_cmds)
-  end
-
-  def test_reserved_data
-    time = Time.parse("2016-01-01 09:00:00 UTC").to_i
-
-    stub_solr_update 'http://localhost:8983/solr/collection1/update?commit=true&wt=ruby'
-
-    d = create_driver CONFIG_SCHEMALESS
-
-    d.emit(sample_reserved_data, time)
-    d.run
-
-    assert_equal('<?xml version="1.0" encoding="UTF-8"?><add><doc><field name="id">change.me</field><field name="title">change.me</field><field name="tag">test</field><field name="time">2016-01-01T09:00:00Z</field></doc></add>', @index_cmds)
+    assert_equal('<?xml version="1.0" encoding="UTF-8"?><add><doc><field name="id">change.me</field><field name="title">change.me 1</field><field name="title">change.me 2</field><field name="tag">test</field><field name="time">2016-01-01T09:00:00Z</field></doc></add>', @index_cmds)
   end
 
   def test_time_format
-    time = Time.parse("2016-01-01 09:00:00 UTC").to_i
+    time = Time.parse('2016-01-01 09:00:00 UTC').to_i
 
     stub_solr_update 'http://localhost:8983/solr/collection1/update?commit=true&wt=ruby'
 
-    d = create_driver CONFIG_TIME_FORMAT
+    sample_time = {'id' => 'change.me', 'title' => 'change.me', 'time' => '2016-01-01 09:00:00.123 UTC'}
 
+    d = create_driver CONFIG_TIME_FORMAT
     d.emit(sample_time, time)
     d.run
 
     assert_equal('<?xml version="1.0" encoding="UTF-8"?><add><doc><field name="id">change.me</field><field name="title">change.me</field><field name="time">2016-01-01T09:00:00.123Z</field><field name="tag">test</field></doc></add>', @index_cmds)
-  end
-
-  def test_time_format_without_time_field
-    time = Time.parse("2016-01-01 09:00:00 UTC").to_i
-
-    stub_solr_update 'http://localhost:8983/solr/collection1/update?commit=true&wt=ruby'
-
-    d = create_driver CONFIG_TIME_FORMAT
-
-    d.emit(sample_record, time)
-    d.run
-
-    assert_equal('<?xml version="1.0" encoding="UTF-8"?><add><doc><field name="id">change.me</field><field name="title">change.me</field><field name="tag">test</field><field name="time">2016-01-01T09:00:00.000Z</field></doc></add>', @index_cmds)
   end
 
   def start_zookeeper
