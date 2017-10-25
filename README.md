@@ -1,13 +1,13 @@
 # Fluent::Plugin::SolrOutput
 
-This is a [Fluentd](http://fluentd.org/) output plugin for sending data to [Apache Solr](http://lucene.apache.org/solr/). It supports standalone Solr and [SolrCloud](https://cwiki.apache.org/confluence/display/solr/SolrCloud).
+This is a [Fluentd](http://fluentd.org/) output plugin for send data to [Apache Solr](http://lucene.apache.org/solr/).
 
 ## Requirements
 
-| fluent-plugin-output-solr | fluentd         | td-agent | ruby    |
-| ------------------------- | --------------- | -------- | ------- |
-| 1.x.x                     | \>= 0.14.0, < 2 | 3        | \>= 2.1 |
-| 0.x.x                     | ~> 0.12.0       | 2        | \>= 1.9 |
+| fluent-plugin-output-solr | fluentd         | td-agent | ruby   |
+| ------------------------- | --------------- | -------- | ------ |
+| 1.x.x                     | >= 0.14.0, < 2  | 3        | >= 2.1 |
+| 0.x.x                     | ~> 0.12.0       | 2        | >= 1.9 |
 
 * The 1.x.x series is developed from this branch (master)
 * The 0.x.x series (compatible with fluentd v0.12, and td-agent 2) is developed on the [v0.x.x branch](https://github.com/mosuka/fluent-plugin-output-solr/tree/v0.x.x)
@@ -32,12 +32,12 @@ $ rake install
 
 ## Config parameters
 
-### url
+### base_url
 
-The Solr server url (for example http://localhost:8983/solr/collection1).
+The Solr base url (for example http://localhost:8983/solr).
 
 ```
-url http://localhost:8983/solr/collection1
+base_url http://localhost:8983/solr
 ```
 
 ### zk_host
@@ -50,18 +50,10 @@ zk_host localhost:2181/solr
 
 ### collection
 
-The SolrCloud collection name (default collection1).
+The Solr collection/core name (default collection1).
 
 ```
 collection collection1
-```
-
-### defined_fields
-
-The defined fields in the Solr schema.xml. If omitted, it will get fields via Solr Schema API.
-
-```
-defined_fields ["id", "title"]
 ```
 
 ### ignore_undefined_fields
@@ -72,28 +64,36 @@ Ignore undefined fields in the Solr schema.xml.
 ignore_undefined_fields false
 ```
 
-### string_field_value_max_length
+### tag_field
 
-A string field value max length. If set -1, it means unlimited (default -1). However, there is a limit of Solr.
-
-```
-string_field_value_max_length -1
-```
-
-### unique_key_field
-
-A field name of unique key in the Solr schema.xml. If omitted, it will get unique key via Solr Schema API.
+A field name of fluentd tag in the Solr schema.xml (default tag).
 
 ```
-unique_key_field id
+tag_field tag
 ```
 
-### timestamp_field
+### time_field
 
 A field name of event timestamp in the Solr schema.xml (default time).
 
 ```
-timestamp_field time
+time_field time
+```
+
+### time_format
+
+The format of the time field (default %FT%TZ).
+
+```
+time_format %FT%TZ
+```
+
+### millisecond
+
+Output millisecond to Solr (default false).
+
+```
+millisecond false
 ```
 
 ### flush_size
@@ -119,8 +119,11 @@ commit_with_flush true
 <match something.logs>
   @type solr
 
-  # The Solr server url (for example http://localhost:8983/solr/collection1).
-  url http://localhost:8983/solr/collection1
+  # The Solr base url (for example http://localhost:8983/solr).
+  base_url http://localhost:8983/solr
+
+  # The Solr collection/core name (default collection1).
+  collection collection1
 </match>
 ```
 
@@ -132,81 +135,9 @@ commit_with_flush true
   # The ZooKeeper connection string that SolrCloud refers to (for example localhost:2181/solr).
   zk_host localhost:2181/solr
 
-  # The SolrCloud collection name (default collection1).
+  # The Solr collection/core name (default collection1).
   collection collection1
 </match>
-```
-
-## Solr setup examples
-
-### How to setup Standalone Solr using data-driven schemaless mode.
-
-1.Download and install Solr
-
-```sh
-$ mkdir $HOME/solr
-$ cd $HOME/solr
-$ wget https://archive.apache.org/dist/lucene/solr/5.4.0/solr-5.4.0.tgz
-$ tar zxvf solr-5.4.0.tgz
-$ cd solr-5.4.0
-```
-
-2.Start standalone Solr
-
-```sh
-$ ./bin/solr start -p 8983 -s server/solr
-```
-
-3.Create core
-
-```sh
-$ ./bin/solr create -c collection1 -d server/solr/configsets/data_driven_schema_configs -n collection1_configs
-```
-
-### How to setup SolrCloud using data-driven schemaless mode (shards=1 and replicationfactor=2).
-
-1.Download and install ZooKeeper
-
-```sh
-$ mkdir $HOME/zookeeper
-$ cd $HOME/zookeeper
-$ wget https://archive.apache.org/dist/zookeeper/zookeeper-3.4.6/zookeeper-3.4.6.tar.gz
-$ tar zxvf zookeeper-3.4.6.tar.gz
-$ cd zookeeper-3.4.6
-$ cp -p ./conf/zoo_sample.cfg ./conf/zoo.cfg
-```
-
-2.Start standalone ZooKeeper
-
-```sh
-$ ./bin/zkServer.sh start
-```
-
-3.Download an install Solr
-
-```sh
-$ mkdir $HOME/solr
-$ cd $HOME/solr
-$ wget https://archive.apache.org/dist/lucene/solr/5.4.0/solr-5.4.0.tgz
-$ tar zxvf solr-5.4.0.tgz
-$ cd solr-5.4.0
-$ ./server/scripts/cloud-scripts/zkcli.sh -zkhost localhost:2181 -cmd clear /solr
-$ ./server/scripts/cloud-scripts/zkcli.sh -zkhost localhost:2181 -cmd makepath /solr
-$ cp -pr server/solr server/solr1
-$ cp -pr server/solr server/solr2
-```
-
-4.Start SolrCloud
-
-```sh
-$ ./bin/solr start -h localhost -p 8983 -z localhost:2181/solr -s server/solr1
-$ ./bin/solr start -h localhost -p 8985 -z localhost:2181/solr -s server/solr2
-```
-
-5.Create collection
-
-```sh
-$ ./bin/solr create -c collection1 -d server/solr1/configsets/data_driven_schema_configs -n collection1_configs -shards 1 -replicationFactor 2
 ```
 
 ## Development
