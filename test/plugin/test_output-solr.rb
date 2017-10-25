@@ -59,22 +59,6 @@ class SolrOutputTest < Test::Unit::TestCase
     Fluent::Test::BufferedOutputTestDriver.new(Fluent::SolrOutput, tag).configure(conf)
   end
 
-  # def sample_record
-  #   {'id' => 'change.me', 'title' => 'change.me'}
-  # end
-
-  def sample_multivalued_record
-    {'id' => 'change.me', 'title' => ['change.me 1', 'change.me 2']}
-  end
-
-  def sample_reserved_data
-    {'id' => 'change.me', 'title' => 'change.me', '_version_' => 123456}
-  end
-
-  def sample_time
-    {'id' => 'change.me', 'title' => 'change.me', 'time' => '2016-01-01 09:00:00.123 UTC'}
-  end
-
   def stub_solr_update(url = 'http://localhost:8983/solr/collection1/update?commit=true&wt=ruby')
     stub_request(:post, url).with do |req|
       @index_cmds = req.body
