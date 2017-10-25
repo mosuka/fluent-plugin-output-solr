@@ -50,7 +50,7 @@ zk_host localhost:2181/solr
 
 ### collection
 
-The SolrCloud collection name (default collection1).
+The Solr collection/core name (default collection1).
 
 ```
 collection collection1
