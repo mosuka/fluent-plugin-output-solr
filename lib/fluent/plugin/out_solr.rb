@@ -93,6 +93,12 @@ module Fluent::Plugin
         cloud_connection = RSolr::Cloud::Connection.new(@zk)
         @solr = RSolr::Client.new(cloud_connection, read_timeout: 60, open_timeout: 60)
       end
+
+      # Get unique key field from Solr
+      @unique_key = get_unique_key
+
+      # Get fields from Solr
+      @fields = get_fields
     end
 
     def shutdown
@@ -118,12 +124,6 @@ module Fluent::Plugin
     def write(chunk)
       documents = []
 
-      # Get fields from Solr
-      fields = get_fields
-
-      # Get unique key field from Solr
-      unique_key = get_unique_key
-
       # Get fluentd tag
       tag = chunk.metadata.tag
 
@@ -131,8 +131,8 @@ module Fluent::Plugin
         record = inject_values_to_record(tag, time, record)
 
         # Set unique key and value
-        unless record.has_key?(unique_key) then
-          record.merge!({unique_key => SecureRandom.uuid})
+        unless record.has_key?(@unique_key) then
+          record.merge!({@unique_key => SecureRandom.uuid})
         end
 
         # Set Fluentd tag to Solr tag field
@@ -159,7 +159,7 @@ module Fluent::Plugin
         # Ignore undefined fields
         if @ignore_undefined_fields then
           record.each_key do |key|
-            unless fields.include?(key) then
+            unless @fields.include?(key) then
               record.delete(key)
             end
           end
