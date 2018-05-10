@@ -102,25 +102,25 @@ class SolrOutputTest < Test::Unit::TestCase
     assert_equal true, d.instance.commit_with_flush
   end
 
-  def test_invalid_chunk_keys
-    assert_raise_message(/'tag' in chunk_keys is required./) do
-      create_driver(Fluent::Config::Element.new(
-          'ROOT', '', {
-          '@type'                   => 'solr',
-          'base_url'                => 'http://localhost:8983/solr',
-          'collection'              => 'collection1',
-          'ignore_undefined_fields' => true,
-          'tag_field'               => 'tag',
-          'time_field'              => 'time',
-          'flush_size'              => 100,
-          'commit_with_flush'       => true
-      }, [
-              Fluent::Config::Element.new('buffer', 'mykey', {
-                  'chunk_keys' => 'mykey'
-              }, [])
-          ]))
-    end
-  end
+  # def test_invalid_chunk_keys
+  #   assert_raise_message(/'tag' in chunk_keys is required./) do
+  #     create_driver(Fluent::Config::Element.new(
+  #         'ROOT', '', {
+  #         '@type'                   => 'solr',
+  #         'base_url'                => 'http://localhost:8983/solr',
+  #         'collection'              => 'collection1',
+  #         'ignore_undefined_fields' => true,
+  #         'tag_field'               => 'tag',
+  #         'time_field'              => 'time',
+  #         'flush_size'              => 100,
+  #         'commit_with_flush'       => true
+  #     }, [
+  #             Fluent::Config::Element.new('buffer', 'mykey', {
+  #                 'chunk_keys' => 'mykey'
+  #             }, [])
+  #         ]))
+  #   end
+  # end
 
   def test_format_standalone
     time = event_time('2016-01-01 09:00:00 UTC')
@@ -168,7 +168,7 @@ class SolrOutputTest < Test::Unit::TestCase
       d.feed(time, sample_record)
     end
 
-    assert_equal('<?xml version="1.0" encoding="UTF-8"?><add><doc><field name="id">change.me</field><field name="title">change.me</field><field name="tag">test</field><field name="time">2016-01-01T09:00:00Z</field></doc></add>', @index_cmds)
+    assert_equal('<?xml version="1.0" encoding="UTF-8"?><add><doc><field name="id">change.me</field><field name="title">change.me</field><field name="time">2016-01-01T09:00:00Z</field></doc></add>', @index_cmds)
   end
 
   def test_write_solrcloud
@@ -185,7 +185,7 @@ class SolrOutputTest < Test::Unit::TestCase
       d.feed(time, sample_record)
     end
 
-    assert_equal('<?xml version="1.0" encoding="UTF-8"?><add><doc><field name="id">change.me</field><field name="title">change.me</field><field name="tag">test</field><field name="time">2016-01-01T09:00:00Z</field></doc></add>', @index_cmds)
+    assert_equal('<?xml version="1.0" encoding="UTF-8"?><add><doc><field name="id">change.me</field><field name="title">change.me</field><field name="time">2016-01-01T09:00:00Z</field></doc></add>', @index_cmds)
 
     stop_zookeeper
   end
@@ -202,7 +202,7 @@ class SolrOutputTest < Test::Unit::TestCase
       d.feed(time, sample_multivalued_record)
     end
 
-    assert_equal('<?xml version="1.0" encoding="UTF-8"?><add><doc><field name="id">change.me</field><field name="title">change.me 1</field><field name="title">change.me 2</field><field name="tag">test</field><field name="time">2016-01-01T09:00:00Z</field></doc></add>', @index_cmds)
+    assert_equal('<?xml version="1.0" encoding="UTF-8"?><add><doc><field name="id">change.me</field><field name="title">change.me 1</field><field name="title">change.me 2</field><field name="time">2016-01-01T09:00:00Z</field></doc></add>', @index_cmds)
   end
 
   def test_time_format
@@ -217,7 +217,7 @@ class SolrOutputTest < Test::Unit::TestCase
       d.feed(time, sample_time)
     end
 
-    assert_equal('<?xml version="1.0" encoding="UTF-8"?><add><doc><field name="id">change.me</field><field name="title">change.me</field><field name="time">2016-01-01T09:00:00.123Z</field><field name="tag">test</field></doc></add>', @index_cmds)
+    assert_equal('<?xml version="1.0" encoding="UTF-8"?><add><doc><field name="id">change.me</field><field name="title">change.me</field><field name="time">2016-01-01T09:00:00.123Z</field></doc></add>', @index_cmds)
   end
 
   def start_zookeeper

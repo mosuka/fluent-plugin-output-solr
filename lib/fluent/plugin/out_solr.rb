@@ -60,7 +60,7 @@ module Fluent::Plugin
 
     config_section :buffer do
       config_set_default :@type, DEFAULT_BUFFER_TYPE
-      config_set_default :chunk_keys, ['tag']
+      # config_set_default :chunk_keys, ['tag']
     end
 
     def initialize
@@ -70,7 +70,7 @@ module Fluent::Plugin
     def configure(conf)
       compat_parameters_convert(conf, :inject)
       super
-      raise Fluent::ConfigError, "'tag' in chunk_keys is required." if not @chunk_key_tag
+      # raise Fluent::ConfigError, "'tag' in chunk_keys is required." if not @chunk_key_tag
     end
 
     def start
