@@ -102,6 +102,26 @@ class SolrOutputTest < Test::Unit::TestCase
     assert_equal true, d.instance.commit_with_flush
   end
 
+  def test_invalid_chunk_keys
+    assert_raise_message(/'tag' in chunk_keys is required./) do
+      create_driver(Fluent::Config::Element.new(
+          'ROOT', '', {
+          '@type'                   => 'solr',
+          'base_url'                => 'http://localhost:8983/solr',
+          'collection'              => 'collection1',
+          'ignore_undefined_fields' => true,
+          'tag_field'               => 'tag',
+          'time_field'              => 'time',
+          'flush_size'              => 100,
+          'commit_with_flush'       => true
+      }, [
+              Fluent::Config::Element.new('buffer', 'mykey', {
+                  'chunk_keys' => 'mykey'
+              }, [])
+          ]))
+    end
+  end
+
   def test_format_standalone
     time = event_time('2016-01-01 09:00:00 UTC')
 
